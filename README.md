@@ -54,3 +54,8 @@ Example Usage:
 							.SELECT("ID").FROM("LatestOrders"))
 			.build().sql;
       
+      
+
+
+BSD 3-Clause License
+
