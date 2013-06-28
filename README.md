@@ -26,8 +26,29 @@ Example Usage:
 	    (SELECT ID
 	     FROM LatestOrders)
      
-     
-  In code:
+Using String concatenation:
+  
+  	String sql = 		" WITH LatestOrders AS (" +
+				"		SELECT MAX ( ID ) " +
+				"			FROM dbo.Orders " +
+				"			GROUP BY CustomerID" +
+				"		) "+
+				" SELECT "+
+				"    Customers.*, "+
+				"    Orders.OrderTime AS LatestOrderTime, "+
+				"    ( SELECT COUNT ( * ) " +
+				"		FROM dbo.OrderItems " +
+				"		WHERE OrderID IN "+
+				"        ( SELECT ID FROM dbo.Orders WHERE CustomerID = Customers.ID ) ) "+
+				"            AS TotalItemsPurchased "+
+				" FROM dbo.Customers " +
+				" INNER JOIN dbo.Orders "+
+				"        ON Customers.ID = Orders.CustomerID "+
+				" WHERE "+
+				"    Orders.ID IN ( SELECT ID FROM LatestOrders )";
+  
+  
+In fluent SQL:
   
     	String actual = new SQL()
 			.WITH("LatestOrders", 
@@ -57,5 +78,9 @@ Example Usage:
       
 
 
-BSD 3-Clause License
+BSD License
 
+
+link to comments
+
+https://news.ycombinator.com/item?id=5956867
