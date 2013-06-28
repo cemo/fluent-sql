@@ -1,50 +1,50 @@
 package com.ivanceras.fluent;
 
+
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
-import com.ivanceras.fluent.SQL.Field;
 import com.ivanceras.fluent.SQL.Window.PartitionBy;
 
 public class SQL {
 
-	LinkedHashMap<Integer, Object> callOrder = new LinkedHashMap<Integer, Object>();
+	private LinkedHashMap<Integer, Object> callOrder = new LinkedHashMap<Integer, Object>();
 	protected LinkedList<With> withQueries = new LinkedList<With>();
-	Type type;
-	LinkedList<Field> fields = new LinkedList<Field>();
-	LinkedList<Case> cases = new LinkedList<Case>();
-	LinkedList<Set> set = new LinkedList<Set>();
-	LinkedList<Distinct> distinctColumns = new LinkedList<Distinct>();
-	From from;//first table
-	Update update;
-	Into into;
+	private Type type;
+	private LinkedList<Field> fields = new LinkedList<Field>();
+	private LinkedList<Function> functions = new LinkedList<Function>();
+	private LinkedList<Case> cases = new LinkedList<Case>();
+	private LinkedList<Set> set = new LinkedList<Set>();
+	private LinkedList<Distinct> distinctColumns = new LinkedList<Distinct>();
+	private From from;//first table
+	private Update update;
+	private Into into;
 
-	LinkedList<Values> values = new LinkedList<Values>();
+	private LinkedList<Values> values = new LinkedList<Values>();
 
-	LinkedList<Join> joins  = new LinkedList<Join>();
-	LinkedList<On> on = new LinkedList<On>();
-	LinkedList<Using> using  = new LinkedList<Using>();
+	private LinkedList<Join> joins  = new LinkedList<Join>();
+	private LinkedList<Using> using  = new LinkedList<Using>();
 
-	LinkedList<Union> union = new LinkedList<Union>();
-	LinkedList<Intersect> intersect = new LinkedList<Intersect>();
-	LinkedList<Except> except = new LinkedList<Except>();
-
-
-	LinkedList<Where> whereStatements = new LinkedList<Where>();
-	LinkedList<In> in = new LinkedList<In>();
-	LinkedList<Exist> exist = new LinkedList<Exist>();
-
-	LinkedList<OrderBy> orderBy = new LinkedList<OrderBy>();
-	LinkedList<GroupBy> groupBy = new LinkedList<GroupBy>();
-	LinkedList<Having> having = new LinkedList<Having>();
-
-	LinkedList<Window> window = new LinkedList<Window>();
-	LinkedList<PartitionBy> partitionBy = new LinkedList<PartitionBy>(); 
-	LinkedList<Returning> returning = new LinkedList<Returning>();
+	private LinkedList<Union> union = new LinkedList<Union>();
+	private LinkedList<Intersect> intersect = new LinkedList<Intersect>();
+	private LinkedList<Except> except = new LinkedList<Except>();
 
 
-	Limit limit;
-	Offset offset;
+	private LinkedList<Where> whereStatements = new LinkedList<Where>();
+	private LinkedList<In> in = new LinkedList<In>();
+	private LinkedList<Exist> exist = new LinkedList<Exist>();
+
+	private LinkedList<OrderBy> orderBy = new LinkedList<OrderBy>();
+	private LinkedList<GroupBy> groupBy = new LinkedList<GroupBy>();
+	private LinkedList<Having> having = new LinkedList<Having>();
+
+	private LinkedList<Window> window = new LinkedList<Window>();
+	private LinkedList<PartitionBy> partitionBy = new LinkedList<PartitionBy>(); 
+	private LinkedList<Returning> returning = new LinkedList<Returning>();
+
+
+	private Limit limit;
+	private Offset offset;
 
 	public SQL(){
 
@@ -131,44 +131,51 @@ public class SQL {
 		}
 		return this;
 	}
+	public SQL SUM(SQL sql){
+		return function(Function.SUM, new Field(sql));
+	}
+
 	public SQL SUM(String column){
-		Field field = new Field(column);
-		field.function = Field.SUM;
-		this.fields.add(field);
-		return called(field);
+		return function(Function.SUM, new Field(column));
+	}
+	public SQL COUNT(SQL sql){
+		return function(Function.COUNT, new Field(sql));
 	}
 	public SQL COUNT(String column){
-		Field field = new Field(column);
-		field.function = Field.COUNT;
-		this.fields.add(field);
-		return called(field);
+		return function(Function.COUNT, new Field(column));
 	}
 	public SQL MAX(String column){
-		Field field = new Field(column);
-		field.function = Field.MAX;
-		this.fields.add(field);
-		return called(field);
+		return function(Function.MAX, new Field(column));
+
+	}
+	public static SQL MAX(Field field){
+		return new SQL().function(Function.MAX, field);
 	}
 	public SQL MIN(String column){
-		Field field = new Field(column);
-		field.function = Field.MIN;
-		this.fields.add(field);
-		return called(field);
+		return function(Function.MIN, new Field(column));
+	}
+	
+	private SQL function(String functionName, Field field){
+		Function function  = new Function(functionName, field);
+		this.functions.add(function);
+		return called(function);
 	}
 	public SQL AVG(String column){
-		Field field = new Field(column);
-		field.function = Field.AVG;
-		this.fields.add(field);
-		return called(field);
+		Function function  = new Function(Function.AVG, new Field(column));
+		this.functions.add(function);
+		return called(function);
+
 	}
 	public SQL AS(String columnAs){
 		Field lastField = getLastField();
 		Object lasCall = getLastCall();
 		System.err.println("lastcall: "+lasCall);
 		System.err.println("lastField: "+lastField);
-		if(lastField == lasCall){
-			System.err.println("This is the lastFiel = lastCall");
-			lastField.columnAs = columnAs;
+		if(lasCall instanceof Field){
+			((Field)lasCall).columnAs = columnAs;
+		}
+		if(lasCall instanceof Function){
+			((Function)lasCall).functionAs = columnAs;
 		}
 		return this;
 	}
@@ -180,6 +187,19 @@ public class SQL {
 		}
 		Field lastField = fields.get(size-1);
 		return lastField;
+	}
+	private Join getLastJoin(){
+		int calls = callOrder.size();
+		if(calls < 1){
+			return null;
+		}
+		for(int i = calls; i >= 0; i--){
+			Object lastCall = callOrder.get(i);
+			if(lastCall instanceof Join){
+				return ((Join)lastCall);
+			}
+		}
+		return null;
 	}
 
 	private Object getLastCall(){
@@ -232,12 +252,17 @@ public class SQL {
 
 	public SQL ON(String column1){
 		On on = new On(column1);
-		this.on.add(on);
-		return called(on);
+		return on(on);
 	}
+
 	public SQL ON(String column1, String column2){
 		On on = new On(column1, column2);
-		this.on.add(on);
+		return on(on);
+	}
+	
+	private SQL on(On on){
+		Join lastJoin = getLastJoin();
+		lastJoin.on.add(on);
 		return called(on);
 	}
 	/**
@@ -463,10 +488,10 @@ public class SQL {
 	}
 
 
-	public SQL and(String field, String operator, Object value){
+	public SQL AND(String field, String operator, Object value){
 		return WHERE(field, operator, value);
 	}
-	public SQL and(String field, String operator, SQL sql){
+	public SQL AND(String field, String operator, SQL sql){
 		return WHERE(field, operator, sql);
 	}
 
@@ -564,11 +589,6 @@ public class SQL {
 		return called(offset);
 	}
 
-	//	public Breakdown build(){
-	//		return new SQLBuilder().build(this);
-	//	}
-
-
 	///////////////////////////////////
 	//
 	// SQL inner Class
@@ -617,64 +637,41 @@ public class SQL {
 	}
 
 	public class Field{
-		public static final String MAX = "MAX";
-		public static final String MIN = "MIN";
-		public static final String COUNT = "COUNT";
-		public static final String SUM = "SUM";
-		public static final String AVG = "AVG";
-		protected String field;
-		protected String function;
+		protected String column;
 		protected SQL sql;
 		protected String columnAs;
+		//TODO: add Value field argument as well
 		public Field(String field){
-			this.field = field;
+			this.column = field;
 		}
 		public Field(SQL sql){
 			this.sql = sql;
 		}
 	}
-	private Breakdown buildField(Field field){
-		return buildField(0, field);
-	}
-
 	
-	private Breakdown buildField(int tabs, Field field){
-		return buildField(tabs, field, false, false);
-	}
-
-	
-	private Breakdown buildField(int tabs, Field field, boolean doCommaField, boolean fieldFunctionOpenedParenthesis){
-		LinkedList<Object> parameters = new LinkedList<Object>();
-		StringBuilder sb = new StringBuilder();
-
-		if(field.function != null){
-			sb.append(" "+field.function);
-			sb.append(" (");
-			fieldFunctionOpenedParenthesis = true;
+	public class Function{
+		public static final String MAX = "MAX";
+		public static final String MIN = "MIN";
+		public static final String COUNT = "COUNT";
+		public static final String SUM = "SUM";
+		public static final String AVG = "AVG";
+		protected String function;
+		protected LinkedList<Field> functionFields = new LinkedList<Field>();
+		protected String functionAs;
+		
+		public Function(String function, Field field){
+			this.function = function;
+			this.functionFields.add(field);
 		}
-		if(field.field != null){
-			sb.append(" "+field.field);
-		}
-		if(field.sql != null){
-			Breakdown fieldBreakdown = build(field.sql, tabs);
-			sb.append(" (");
-			sb.append(" "+fieldBreakdown.sql);
-			sb.append(" )");
-			for(Object fieldParam : fieldBreakdown.parameters){
-				parameters.add(fieldParam);
+		public Function(String function, Field... field){
+			this.function = function;
+			for(Field f : field){
+				this.functionFields.add(f);
 			}
 		}
-		if(fieldFunctionOpenedParenthesis){
-			sb.append(" )");
-			fieldFunctionOpenedParenthesis = false;
-		}
-		if(field.columnAs != null){
-			sb.append(" AS");
-			sb.append(" "+field.columnAs);
-		}
-		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
-		return breakdown;
 	}
+	
+	
 	
 	public class Set{
 		protected String column;
@@ -768,6 +765,8 @@ public class SQL {
 
 		protected String joinType;
 		protected String table;
+		protected LinkedList<On> on = new LinkedList<On>();
+
 
 		public Join(String joinType, String table){
 			this.joinType = joinType;
@@ -983,9 +982,6 @@ public class SQL {
 		protected String function;
 		protected String expression;
 		protected Over over;
-		public static final String rank = "RANK()";
-		public static final String avg = "AVG";
-		public static final String sum = "SUM";
 
 		public class PartitionBy{
 			protected String column;
@@ -1032,10 +1028,20 @@ public class SQL {
 		}
 	}
 	
+	/**
+	 * Build this SQL object
+	 * @return
+	 */
 	public Breakdown build(){
 		return build(this, 0);
 	}
 	
+	/**
+	 * Warning: Use the the protected fields from sql object, or else would end up using the class instance variable which would have a different parameters
+	 * @param sql
+	 * @param tabs
+	 * @return
+	 */
 	private Breakdown build(SQL sql, int tabs){
 		LinkedList<Object> parameters = new LinkedList<Object>(); 
 		StringBuilder sb = new StringBuilder();
@@ -1124,23 +1130,23 @@ public class SQL {
 			}
 			distinctIndex++;
 		}
+		//////////////////////////
+		/// build the functions
+		///////////////////////////
+		Breakdown functionBreakdown = buildFunctionList(tabs, sql.functions);
+		sb.append(" "+functionBreakdown.sql);
+		for(Object functionParam : functionBreakdown.parameters){
+			parameters.add(functionParam);
+		}
+
 		/////////////////////////////
 		/// build the fields
 		/////////////////////////////
-		boolean doCommaField = false;
-		boolean fieldFunctionOpenedParenthesis = false;
-		for(Field field : sql.fields){
-			if(doCommaField){
-				sb.append(",");
-				sb.append(line(tabs+2));
-			}else{doCommaField=true;}
-			Breakdown fieldBreakdown = buildField(tabs, field, doCommaField, fieldFunctionOpenedParenthesis);
-			sb.append(fieldBreakdown.sql);
-			for(Object fieldParam : fieldBreakdown.parameters){
-				parameters.add(fieldParam);
-			}
+		Breakdown fieldsBreakdown = buildFieldList(tabs, sql.fields);
+		sb.append(" "+fieldsBreakdown.sql);
+		for(Object fieldsParam : fieldsBreakdown.parameters){
+			parameters.add(fieldsParam);
 		}
-
 		///////////////////////////
 		// INTO clause
 		///////////////////////////
@@ -1193,23 +1199,24 @@ public class SQL {
 			sb.append(line(tabs+2));
 			sb.append(" "+join.joinType);
 			sb.append(" "+join.table);
-		}
-		///////////////////////////
-		// JOIN ON's
-		///////////////////////////
-		boolean doOnJoinClause = true;
-		for(On on : sql.on){
-			sb.append(line(tabs+2));
-			if(doOnJoinClause){
-				sb.append(" ON");
-				doOnJoinClause = false;
-			}else{
-				sb.append(" AND");
+			///////////////////////////
+			// JOIN ON's
+			///////////////////////////
+			boolean doOnJoinClause = true;
+			for(On on : join.on){
+				sb.append(line(tabs+2));
+				if(doOnJoinClause){
+					sb.append(" ON");
+					doOnJoinClause = false;
+				}else{
+					sb.append(" AND");
+				}
+				sb.append(" "+on.column1);
+				sb.append(" = ");
+				sb.append(" "+on.column2);
 			}
-			sb.append(" "+on.column1);
-			sb.append(" = ");
-			sb.append(" "+on.column2);
 		}
+
 		///////////////////////////
 		// USING
 		///////////////////////////
@@ -1244,33 +1251,22 @@ public class SQL {
 				sb.append(line(tabs));
 				sb.append(" "+where.connector);
 			}
-			for(String funcCol : where.functionColumn){
-				sb.append(funcCol);
-				sb.append("(");
-			}
 			if(where.field1 != null){
-				Breakdown wherefieldBreakdown = buildField(tabs, where.field1, false, false);
+				Breakdown wherefieldBreakdown = buildField(tabs, where.field1, false);
 				sb.append(" "+wherefieldBreakdown.sql);
 				for(Object p : wherefieldBreakdown.parameters){
 					parameters.add(p);
 				}
 			}
-			for(int i = 0; i < where.functionColumn.size(); i++){
-				sb.append(")");
-			}
 			if(where.operator != null){
 				sb.append(" "+where.operator);
-			}
-			for(String funcVal : where.functionValue){
-				sb.append(funcVal);
-				sb.append("(");
 			}
 			if(where.value != null){
 				sb.append(" ?");
 				parameters.add(where.value);
 			}
 			if(where.field2 != null){
-				Breakdown wherefield2Breakdown = buildField(tabs, where.field2, false, false);
+				Breakdown wherefield2Breakdown = buildField(tabs, where.field2, false);
 				sb.append(" "+wherefield2Breakdown.sql);
 				for(Object p : wherefield2Breakdown.parameters){
 					parameters.add(p);
@@ -1383,7 +1379,7 @@ public class SQL {
 		//////////////////////////////////////////
 
 		//////////////////////////////
-		// values
+		// VALUES
 		//////////////////////////////
 		boolean doCommaValues = false;
 		for(Values value : sql.values){
@@ -1410,7 +1406,7 @@ public class SQL {
 			}
 		}
 		////////////////////////////
-		// order by clause
+		// ORDER BY clause
 		////////////////////////////
 		boolean doOrderByClause = true;
 		boolean doCommaOrderBy = false;
@@ -1463,6 +1459,94 @@ public class SQL {
 		return tstr.toString();
 	}
 
+	private Breakdown buildFieldList(int tabs, LinkedList<Field> fields){
+		StringBuilder sb = new StringBuilder();
+		LinkedList<Object> parameters = new LinkedList<Object>();
+		boolean doCommaField = false;
+		for(Field field : fields){
+			if(doCommaField){
+				sb.append(",");
+				sb.append(line(tabs+2));
+			}else{doCommaField=true;}
+			
+			Breakdown fieldBreakdown = buildField(tabs, field, doCommaField);
+			sb.append(fieldBreakdown.sql);
+			
+			for(Object fieldParam : fieldBreakdown.parameters){
+				parameters.add(fieldParam);
+			}
+		}
+		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
+		return breakdown;
+	}
+	
+	private Breakdown buildField(int tabs, Field field, boolean doCommaField){
+		LinkedList<Object> parameters = new LinkedList<Object>();
+		StringBuilder sb = new StringBuilder();
+		if(field.column != null){
+			sb.append(" "+field.column);
+		}
+		if(field.sql != null){
+			Breakdown fieldBreakdown = build(field.sql, tabs);
+			sb.append(" (");
+			sb.append(" "+fieldBreakdown.sql);
+			sb.append(" )");
+			for(Object fieldParam : fieldBreakdown.parameters){
+				parameters.add(fieldParam);
+			}
+		}
+		if(field.columnAs != null){
+			sb.append(" AS");
+			sb.append(" "+field.columnAs);
+		}
+		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
+		return breakdown;
+	}
+	
+	
+	private Breakdown buildFunctionList(int tabs, LinkedList<Function> functions){
+		StringBuilder sb = new StringBuilder();
+		LinkedList<Object> parameters = new LinkedList<Object>();
+		boolean doCommaFunction = false;
+		for(Function function : functions){
+			if(doCommaFunction){
+				sb.append(",");
+				sb.append(line(tabs+2));
+			}else{doCommaFunction=true;}
+			Breakdown fieldBreakdown = buildFunction(tabs, function, doCommaFunction);
+			sb.append(fieldBreakdown.sql);
+			for(Object fieldParam : fieldBreakdown.parameters){
+				parameters.add(fieldParam);
+			}
+		}
+		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
+		return breakdown;
+	}
+	
+	private Breakdown buildFunction(int tabs, Function function, boolean doCommaFunction){
+		StringBuilder sb = new StringBuilder();
+		LinkedList<Object> parameters = new LinkedList<Object>();
+		boolean fieldFunctionOpenedParenthesis = false;
+		if(function.function != null){
+			sb.append(" "+function.function);
+			sb.append(" (");
+			fieldFunctionOpenedParenthesis = true;
+		}
+		Breakdown fieldBreakdown = buildFieldList(tabs, function.functionFields);
+		sb.append(" "+fieldBreakdown.sql);
+		for(Object fieldParam : fieldBreakdown.parameters){
+			parameters.add(fieldParam);
+		}
+		if(fieldFunctionOpenedParenthesis){
+			sb.append(" )");
+			fieldFunctionOpenedParenthesis = false;
+		}
+		if(function.functionAs != null){
+			sb.append(" AS "+function.functionAs);
+		}
+		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
+		return breakdown;
+	}
 
 
 }
