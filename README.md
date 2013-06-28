@@ -57,5 +57,5 @@ Example Usage:
       
 
 
-BSD 3-Clause License
+BSD License
 
