@@ -88,6 +88,8 @@ public class TestComplexQuery {
 				.WHERE("Orders.ID").IN(new SQL()
 							.SELECT("ID").FROM("LatestOrders"))
 			.build().sql;
+		System.out.println("expected: \n"+expected);
+		System.out.println("actual: \n"+actual);
 		CTest.cassertEquals(expected, actual);
 	}
 
