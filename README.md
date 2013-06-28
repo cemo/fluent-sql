@@ -80,3 +80,7 @@ In fluent SQL:
 
 BSD License
 
+
+link to comments
+
+https://news.ycombinator.com/item?id=5956867
