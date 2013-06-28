@@ -37,5 +37,14 @@ public class S {
 	public static SQL AVG(String column){
 		return new SQL().AVG(column);
 	}
+	public static SQL VALUE(Object... values){
+		return new SQL().VALUE(values);
+	}
+	public static SQL VALUES(Object... values){
+		return new SQL().VALUES(values);
+	}
+	public static SQL IN(SQL sql){
+		return new SQL().IN(sql);
+	}
 
 }

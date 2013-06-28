@@ -1,15 +1,16 @@
 package com.ivanceras.fluent;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 import com.ivanceras.fluent.SQL.Breakdown;
 
-public class TestSQLBuilderFunctions {
+public class TestSQLBuilderMoreComplexFunctions {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -33,7 +34,7 @@ public class TestSQLBuilderFunctions {
 				" WITH LatestOrders AS (" +
 				"		SELECT SUM ( ( COUNT ( ID ) ) )," +
 				"				COUNT ( ( MAX ( n_items ) ) ) , " +
-				"				CustomerName," +
+				"				CustomerName, " +
 				"				( ? ) as color" +
 				"			FROM dbo.Orders" +
 				"			RIGHT JOIN Customers" +
@@ -63,7 +64,7 @@ public class TestSQLBuilderFunctions {
 					S.SELECT("CustomerName")
 							.SUM(S.COUNT("ID"))
 							.COUNT(S.MAX("n_items"))
-							.FIELD(S.VALUE("Red")).AS("color")
+							.FIELD(S.VALUE("Read")).AS("color")
 							.FROM("dbo.Orders")
 							.RIGHT_JOIN("Customers")
 								.ON("Orders.customer_ID", "Customers.ID")
@@ -87,7 +88,7 @@ public class TestSQLBuilderFunctions {
 				.INNER_JOIN("dbo.Orders")
 					.USING("ID")
 				.WHERE("Orders.n_items").GREATER_THAN(0)
-				.WHERE("Orders.ID").IN(S.SELECT("ID").FROM("LatestOrders"))
+				.AND("Orders.ID").IN(S.SELECT("ID").FROM("LatestOrders"))
 			.build();
 		System.out.println("expected: \n"+expected);
 		System.out.println("actual: \n"+actual.sql);

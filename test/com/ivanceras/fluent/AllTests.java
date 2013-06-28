@@ -11,6 +11,8 @@ import org.junit.runners.Suite.SuiteClasses;
 		TestSQLBuilderInsert.class,
 		TestSQLBuilderUpdate.class,
 		TestComplexQuery.class,
+		TestSQLBuilderFunctions.class,
+		TestSQLBuilderMoreComplexFunctions.class,
 		})
 public class AllTests {
 

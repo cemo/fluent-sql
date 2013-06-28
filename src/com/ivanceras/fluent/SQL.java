@@ -1,6 +1,5 @@
 package com.ivanceras.fluent;
 
-
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
@@ -1022,6 +1021,7 @@ public class SQL {
 
 		public String sql;
 		public Object[] parameters;
+		boolean doComma = false;
 		public Breakdown(String sql, Object[] parameters){
 			this.sql = sql;
 			this.parameters = parameters;
@@ -1142,7 +1142,7 @@ public class SQL {
 		/////////////////////////////
 		/// build the fields
 		/////////////////////////////
-		Breakdown fieldsBreakdown = buildFieldList(tabs, sql.fields);
+		Breakdown fieldsBreakdown = buildFieldList(tabs, sql.fields, functionBreakdown.doComma);
 		sb.append(" "+fieldsBreakdown.sql);
 		for(Object fieldsParam : fieldsBreakdown.parameters){
 			parameters.add(fieldsParam);
@@ -1459,10 +1459,10 @@ public class SQL {
 		return tstr.toString();
 	}
 
-	private Breakdown buildFieldList(int tabs, LinkedList<Field> fields){
+	private Breakdown buildFieldList(int tabs, LinkedList<Field> fields, boolean doCommaField){
 		StringBuilder sb = new StringBuilder();
 		LinkedList<Object> parameters = new LinkedList<Object>();
-		boolean doCommaField = false;
+//		boolean doCommaField = false;
 		for(Field field : fields){
 			if(doCommaField){
 				sb.append(",");
@@ -1500,6 +1500,7 @@ public class SQL {
 			sb.append(" "+field.columnAs);
 		}
 		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
+		breakdown.doComma = doCommaField;
 		return breakdown;
 	}
 	
@@ -1520,6 +1521,7 @@ public class SQL {
 			}
 		}
 		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
+		breakdown.doComma = doCommaFunction;
 		return breakdown;
 	}
 	
@@ -1532,7 +1534,7 @@ public class SQL {
 			sb.append(" (");
 			fieldFunctionOpenedParenthesis = true;
 		}
-		Breakdown fieldBreakdown = buildFieldList(tabs, function.functionFields);
+		Breakdown fieldBreakdown = buildFieldList(tabs, function.functionFields, false);
 		sb.append(" "+fieldBreakdown.sql);
 		for(Object fieldParam : fieldBreakdown.parameters){
 			parameters.add(fieldParam);
