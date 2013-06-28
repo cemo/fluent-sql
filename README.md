@@ -76,7 +76,10 @@ In fluent SQL:
 			.build().sql;
       
       
-==Features==
+
+Features
+--------------
+
 A SQL breakdown result:
 breakdown.sql (String) - the SQL string
 breakdown.parameters (Object[]) - the resulted array of the parameters that is gathered by the SQL builder.
