@@ -28,7 +28,7 @@ Example Usage:
      
 Using String concatenation:
   
-  String sql = 			" WITH LatestOrders AS (" +
+  	String sql = 		" WITH LatestOrders AS (" +
 				"		SELECT MAX ( ID ) " +
 				"			FROM dbo.Orders " +
 				"			GROUP BY CustomerID" +
