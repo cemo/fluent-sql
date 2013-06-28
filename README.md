@@ -81,11 +81,11 @@ Features
 --------------
 
 A SQL breakdown result:
- breakdown.sql (String) - the SQL string
- breakdown.parameters (Object[]) - the resulted array of the parameters that is gathered by the SQL builder.
+ * breakdown.sql (String) - the SQL string
+ * breakdown.parameters (Object[]) - the resulted array of the parameters that is gathered by the SQL builder.
 
 This will be used in as parameters in your preparedStatment 
-	stmt.setObject(i,parameter[i])
+ * stmt.setObject(i,parameter[i])
 
 
 
