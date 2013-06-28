@@ -7,24 +7,24 @@ Example Usage:
 
   A complex query:
   
-   WITH LatestOrders AS
-  ( SELECT MAX (ID)
-   FROM dbo.Orders
-   GROUP BY CustomerID )
-SELECT Customers.*,
-       Orders.OrderTime AS LatestOrderTime,
-
-  (SELECT COUNT (*)
-   FROM dbo.OrderItems
-   WHERE OrderID IN
-       (SELECT ID
-        FROM dbo.Orders
-        WHERE CustomerID = Customers.ID)) AS TotalItemsPurchased
-FROM dbo.Customers
-INNER JOIN dbo.Orders ON Customers.ID = Orders.CustomerID
-WHERE Orders.ID IN
-    (SELECT ID
-     FROM LatestOrders)
+	   WITH LatestOrders AS
+	  ( SELECT MAX (ID)
+	   FROM dbo.Orders
+	   GROUP BY CustomerID )
+	SELECT Customers.*,
+	       Orders.OrderTime AS LatestOrderTime,
+	
+	  (SELECT COUNT (*)
+	   FROM dbo.OrderItems
+	   WHERE OrderID IN
+	       (SELECT ID
+	        FROM dbo.Orders
+	        WHERE CustomerID = Customers.ID)) AS TotalItemsPurchased
+	FROM dbo.Customers
+	INNER JOIN dbo.Orders ON Customers.ID = Orders.CustomerID
+	WHERE Orders.ID IN
+	    (SELECT ID
+	     FROM LatestOrders)
      
      
   In code:
