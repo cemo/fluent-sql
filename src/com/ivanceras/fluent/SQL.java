@@ -3,6 +3,7 @@ package com.ivanceras.fluent;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
+import com.ivanceras.fluent.SQL.Field;
 import com.ivanceras.fluent.SQL.Window.PartitionBy;
 
 public class SQL {
@@ -136,6 +137,24 @@ public class SQL {
 		this.fields.add(field);
 		return called(field);
 	}
+	public SQL COUNT(String column){
+		Field field = new Field(column);
+		field.function = Field.COUNT;
+		this.fields.add(field);
+		return called(field);
+	}
+	public SQL MAX(String column){
+		Field field = new Field(column);
+		field.function = Field.MAX;
+		this.fields.add(field);
+		return called(field);
+	}
+	public SQL MIN(String column){
+		Field field = new Field(column);
+		field.function = Field.MIN;
+		this.fields.add(field);
+		return called(field);
+	}
 	public SQL AVG(String column){
 		Field field = new Field(column);
 		field.function = Field.AVG;
@@ -225,7 +244,7 @@ public class SQL {
 	 * And used in join on context
 	 * Careful, might be confused with AND in Where
 	 * @param column1
-	 * @param column2
+	 * @param field2
 	 * @return
 	 */
 	public SQL AND(String arg1, String arg2){
@@ -389,6 +408,10 @@ public class SQL {
 	public SQL EQUAL_TO(Object value){
 		return equality(Where.EQUAL, value);
 	}
+	public SQL EQUAL_TO_FIELD(String column) {
+		return equality(Where.EQUAL, new Field(column));
+	}
+
 	public SQL GREATER_THAN(Object value){
 		return equality(Where.GREATER_THAN, value);
 	}
@@ -425,6 +448,16 @@ public class SQL {
 		if(lastCall instanceof On){
 			On on = ((On)lastCall);
 			on.column2 = (String)value;
+		}
+		return this;
+	}
+	
+	private SQL equality(String equality, Field column){
+		Object lastCall = getLastClauseCallWhetherWhereOrOn();
+		if(lastCall instanceof Where){
+			Where where = ((Where)lastCall);
+			where.operator = equality;
+			where.field2 = column;
 		}
 		return this;
 	}
@@ -584,6 +617,9 @@ public class SQL {
 	}
 
 	public class Field{
+		public static final String MAX = "MAX";
+		public static final String MIN = "MIN";
+		public static final String COUNT = "COUNT";
 		public static final String SUM = "SUM";
 		public static final String AVG = "AVG";
 		protected String field;
@@ -597,6 +633,49 @@ public class SQL {
 			this.sql = sql;
 		}
 	}
+	private Breakdown buildField(Field field){
+		return buildField(0, field);
+	}
+
+	
+	private Breakdown buildField(int tabs, Field field){
+		return buildField(tabs, field, false, false);
+	}
+
+	
+	private Breakdown buildField(int tabs, Field field, boolean doCommaField, boolean fieldFunctionOpenedParenthesis){
+		LinkedList<Object> parameters = new LinkedList<Object>();
+		StringBuilder sb = new StringBuilder();
+
+		if(field.function != null){
+			sb.append(" "+field.function);
+			sb.append(" (");
+			fieldFunctionOpenedParenthesis = true;
+		}
+		if(field.field != null){
+			sb.append(" "+field.field);
+		}
+		if(field.sql != null){
+			Breakdown fieldBreakdown = build(field.sql, tabs);
+			sb.append(" (");
+			sb.append(" "+fieldBreakdown.sql);
+			sb.append(" )");
+			for(Object fieldParam : fieldBreakdown.parameters){
+				parameters.add(fieldParam);
+			}
+		}
+		if(fieldFunctionOpenedParenthesis){
+			sb.append(" )");
+			fieldFunctionOpenedParenthesis = false;
+		}
+		if(field.columnAs != null){
+			sb.append(" AS");
+			sb.append(" "+field.columnAs);
+		}
+		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
+		return breakdown;
+	}
+	
 	public class Set{
 		protected String column;
 		protected Object value;
@@ -755,10 +834,11 @@ public class SQL {
 
 	public class Where{
 		protected String connector;
-		protected String column;
+		protected Field field1;
 		protected String operator;
 		protected Object value;
 		protected SQL sql;
+		public Field field2;//When equating columns
 		//		protected String expression;
 		protected LinkedList<String> functionColumn = new LinkedList<String>();
 		protected LinkedList<String> functionValue = new LinkedList<String>();
@@ -782,29 +862,29 @@ public class SQL {
 		public final static String OR = "OR";
 
 		public Where(String column, String operator, Object value){
-			this.column = column;
-			this.operator = operator;
+			this(column, operator);
 			this.value = value;
 		}
-
-		public Where(String column, String operator){
-			this.column = column;
-			this.operator = operator;
-		}
-
+		
 		public Where(String column, String operator, SQL sql){
-			this.column = column;
-			this.operator = operator;
+			this(column,operator);
 			this.sql = sql;
 		}
 
+		public Where(String column, String operator){
+			this(column);
+			this.operator = operator;
+		}
+
+
+
 		public Where(String column, SQL sql){
-			this.column = column;
+			this(column);
 			this.sql = sql;
 		}
 
 		public Where(String column){
-			this.column = column;
+			this.field1 = new Field(column);
 		}
 
 		public Where and(Where where){
@@ -1054,31 +1134,10 @@ public class SQL {
 				sb.append(",");
 				sb.append(line(tabs+2));
 			}else{doCommaField=true;}
-
-			if(field.function != null){
-				sb.append(" "+field.function);
-				sb.append(" (");
-				fieldFunctionOpenedParenthesis = true;
-			}
-			if(field.field != null){
-				sb.append(" "+field.field);
-			}
-			if(field.sql != null){
-				Breakdown fieldBreakdown = build(field.sql, tabs);
-				sb.append(" (");
-				sb.append(" "+fieldBreakdown.sql);
-				sb.append(" )");
-				for(Object fieldParam : fieldBreakdown.parameters){
-					parameters.add(fieldParam);
-				}
-			}
-			if(fieldFunctionOpenedParenthesis){
-				sb.append(" )");
-				fieldFunctionOpenedParenthesis = false;
-			}
-			if(field.columnAs != null){
-				sb.append(" AS");
-				sb.append(" "+field.columnAs);
+			Breakdown fieldBreakdown = buildField(tabs, field, doCommaField, fieldFunctionOpenedParenthesis);
+			sb.append(fieldBreakdown.sql);
+			for(Object fieldParam : fieldBreakdown.parameters){
+				parameters.add(fieldParam);
 			}
 		}
 
@@ -1189,8 +1248,12 @@ public class SQL {
 				sb.append(funcCol);
 				sb.append("(");
 			}
-			if(where.column != null){
-				sb.append(" "+where.column);
+			if(where.field1 != null){
+				Breakdown wherefieldBreakdown = buildField(tabs, where.field1, false, false);
+				sb.append(" "+wherefieldBreakdown.sql);
+				for(Object p : wherefieldBreakdown.parameters){
+					parameters.add(p);
+				}
 			}
 			for(int i = 0; i < where.functionColumn.size(); i++){
 				sb.append(")");
@@ -1205,6 +1268,13 @@ public class SQL {
 			if(where.value != null){
 				sb.append(" ?");
 				parameters.add(where.value);
+			}
+			if(where.field2 != null){
+				Breakdown wherefield2Breakdown = buildField(tabs, where.field2, false, false);
+				sb.append(" "+wherefield2Breakdown.sql);
+				for(Object p : wherefield2Breakdown.parameters){
+					parameters.add(p);
+				}
 			}
 			if(where.sql != null){
 				sb.append(" (");
@@ -1392,7 +1462,6 @@ public class SQL {
 		}
 		return tstr.toString();
 	}
-
 
 
 

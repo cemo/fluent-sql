@@ -10,6 +10,7 @@ import org.junit.runners.Suite.SuiteClasses;
 		TestSQLBuilderSelect.class,
 		TestSQLBuilderInsert.class,
 		TestSQLBuilderUpdate.class,
+		TestComplexQuery.class,
 		})
 public class AllTests {
 
