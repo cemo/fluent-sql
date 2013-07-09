@@ -196,6 +196,7 @@ In Fluent SQL
 		...
 	
 Notice the nested functions?
+
 			.SUM(COUNT("ID"))
             .COUNT(MAX("n_items"))
             
