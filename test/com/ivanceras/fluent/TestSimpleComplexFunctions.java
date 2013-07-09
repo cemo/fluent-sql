@@ -9,7 +9,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import static com.ivanceras.fluent.StaticSQL.*;
 
-public class TestSQLBuilderMoreComplexFunctions {
+public class TestSimpleComplexFunctions {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -30,8 +30,8 @@ public class TestSQLBuilderMoreComplexFunctions {
 	@Test
 	public void testRecursiveComplexFunctions(){
 		String expected =
-				" SELECT "+
-				"		( SELECT SUM ( COUNT ( ID ) )," +
+				" WITH LatestOrders AS (" +
+				"		SELECT SUM ( COUNT ( ID ) )," +
 				"				COUNT ( MAX ( n_items ) ), " +
 				"				CustomerName " +
 				"			FROM dbo.Orders" +
@@ -40,8 +40,9 @@ public class TestSQLBuilderMoreComplexFunctions {
 				"			LEFT JOIN Persons" +
 				"				ON Persons.name = Customer.name" +
 				"				AND Persons.lastName = Customer.lastName" +
-				"			GROUP BY CustomerID " +
-				"		) AS LatestOrders," +
+				"			GROUP BY CustomerID" +
+				"		) "+
+				" SELECT "+
 				"    Customers.*, "+
 				"    Orders.OrderTime AS LatestOrderTime, "+
 				"    ( SELECT COUNT ( * ) " +
@@ -54,14 +55,11 @@ public class TestSQLBuilderMoreComplexFunctions {
 				"        USING ID" +
 				" WHERE "+
 				"	Orders.n_items > ? "+
-				"   AND Orders.ID IN ( SELECT ID FROM LatestOrders )" +
-				"	ORDER BY ID DESC " +
-				" LIMIT 100 " +
-				" OFFSET 20" ;
+				"   AND Orders.ID IN ( SELECT ID FROM LatestOrders )" ;
 		
 		Breakdown actual = 
-			SELECT()
-				.FIELD(SELECT("CustomerName")
+				WITH("LatestOrders", 
+					SELECT("CustomerName")
 							.SUM(COUNT("ID"))
 							.COUNT(MAX("n_items"))
 							.FROM("dbo.Orders")
@@ -71,7 +69,8 @@ public class TestSQLBuilderMoreComplexFunctions {
 								.ON("Persons.name", "Customer.name")
 								.AND("Persons.lastName", "Customer.lastName")
 							.GROUP_BY("CustomerID")
-				).AS("LatestOrders")
+			)
+			.SELECT()
 				.FIELD("Customers.*")
 				.FIELD("Orders.OrderTime").AS("LatestOrderTime")
 				.FIELD(SELECT().COUNT("*")
@@ -87,9 +86,6 @@ public class TestSQLBuilderMoreComplexFunctions {
 					.USING("ID")
 				.WHERE("Orders.n_items").GREATER_THAN(0)
 				.AND("Orders.ID").IN(SELECT("ID").FROM("LatestOrders"))
-				.ORDER_BY("ID").DESC()
-				.LIMIT(100)
-				.OFFSET(20)
 			.build();
 		System.out.println("expected: \n"+expected);
 		System.out.println("actual: \n"+actual.getSql());

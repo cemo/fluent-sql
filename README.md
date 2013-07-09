@@ -122,75 +122,90 @@ Usage of Static methods
 
 A more complex example with nested functions
 
-			String expected =
-					" WITH LatestOrders AS (" +
-					"		SELECT SUM ( COUNT ( ID ) )," +
-					"				COUNT ( MAX ( n_items ) ), " +
-					"				CustomerName " +
-					"			FROM dbo.Orders" +
-					"			RIGHT JOIN Customers" +
-					"				on Orders.Customer_ID = Customers.ID " +
-					"			LEFT JOIN Persons" +
-					"				ON Persons.name = Customer.name" +
-					"				AND Persons.lastName = Customer.lastName" +
-					"			GROUP BY CustomerID" +
-					"		) "+
-					" SELECT "+
-					"    Customers.*, "+
-					"    Orders.OrderTime AS LatestOrderTime, "+
-					"    ( SELECT COUNT ( * ) " +
-					"		FROM dbo.OrderItems " +
-					"		WHERE OrderID IN "+
-					"        ( SELECT ID FROM dbo.Orders WHERE CustomerID = Customers.ID ) ) "+
-					"            AS TotalItemsPurchased "+
-					" FROM dbo.Customers " +
-					" INNER JOIN dbo.Orders "+
-					"        USING ID" +
-					" WHERE "+
-					"	Orders.n_items > ? "+
-					"   AND Orders.ID IN ( SELECT ID FROM LatestOrders )" ;
+		String expected =
+				" SELECT "+
+				"		( SELECT SUM ( COUNT ( ID ) )," +
+				"				COUNT ( MAX ( n_items ) ), " +
+				"				CustomerName " +
+				"			FROM dbo.Orders" +
+				"			RIGHT JOIN Customers" +
+				"				on Orders.Customer_ID = Customers.ID " +
+				"			LEFT JOIN Persons" +
+				"				ON Persons.name = Customer.name" +
+				"				AND Persons.lastName = Customer.lastName" +
+				"			GROUP BY CustomerID " +
+				"		) AS LatestOrders," +
+				"    Customers.*, "+
+				"    Orders.OrderTime AS LatestOrderTime, "+
+				"    ( SELECT COUNT ( * ) " +
+				"		FROM dbo.OrderItems " +
+				"		WHERE OrderID IN "+
+				"        ( SELECT ID FROM dbo.Orders WHERE CustomerID = Customers.ID ) ) "+
+				"            AS TotalItemsPurchased "+
+				" FROM dbo.Customers " +
+				" INNER JOIN dbo.Orders "+
+				"        USING ID" +
+				" WHERE "+
+				"	Orders.n_items > ? "+
+				"   AND Orders.ID IN ( SELECT ID FROM LatestOrders )" +
+				"	ORDER BY ID DESC " +
+				" LIMIT 100 " +
+				" OFFSET 20" ;
 
 		...	
 	
 In Fluent SQL
 	
-	import static com.ivanceras.fluent.StaticSQL.*;
-	...
+		import static com.ivanceras.fluent.StaticSQL.*;
+		...
 	
-			Breakdown actual = 
-					WITH("LatestOrders", 
-						SELECT("CustomerName")
-								.SUM(COUNT("ID"))
-								.COUNT(MAX("n_items"))
-								.FROM("dbo.Orders")
-								.RIGHT_JOIN("Customers")
-									.ON("Orders.customer_ID", "Customers.ID")
-								.LEFT_JOIN("Persons")
-									.ON("Persons.name", "Customer.name")
-									.AND("Persons.lastName", "Customer.lastName")
-								.GROUP_BY("CustomerID")
-				)
-				.SELECT()
-					.FIELD("Customers.*")
-					.FIELD("Orders.OrderTime").AS("LatestOrderTime")
-					.FIELD(SELECT().COUNT("*")
-								.FROM("dbo.OrderItems")
-								.WHERE("OrderID").IN(
-											SELECT("ID")
-											.FROM("dbo.Orders")
-											.WHERE("CustomerID").EQUAL_TO_FIELD("Customers.ID"))
+		Breakdown actual = 
+			SELECT()
+				.FIELD(SELECT("CustomerName")
+							.SUM(COUNT("ID"))
+							.COUNT(MAX("n_items"))
+							.FROM("dbo.Orders")
+							.RIGHT_JOIN("Customers")
+								.ON("Orders.customer_ID", "Customers.ID")
+							.LEFT_JOIN("Persons")
+								.ON("Persons.name", "Customer.name")
+								.AND("Persons.lastName", "Customer.lastName")
+							.GROUP_BY("CustomerID")
+				).AS("LatestOrders")
+				.FIELD("Customers.*")
+				.FIELD("Orders.OrderTime").AS("LatestOrderTime")
+				.FIELD(SELECT().COUNT("*")
+							.FROM("dbo.OrderItems")
+							.WHERE("OrderID").IN(
+										SELECT("ID")
+										.FROM("dbo.Orders")
+										.WHERE("CustomerID").EQUAL_TO_FIELD("Customers.ID"))
 							
-							).AS("TotalItemsPurchased")
-					.FROM("dbo.Customers")
-					.INNER_JOIN("dbo.Orders")
-						.USING("ID")
-					.WHERE("Orders.n_items").GREATER_THAN(0)
-					.AND("Orders.ID").IN(SELECT("ID").FROM("LatestOrders"))
-				.build();
-	...
-			CTest.cassertEquals(expected, actual.getSql());
-	...
+						).AS("TotalItemsPurchased")
+				.FROM("dbo.Customers")
+				.INNER_JOIN("dbo.Orders")
+					.USING("ID")
+				.WHERE("Orders.n_items").GREATER_THAN(0)
+				.AND("Orders.ID").IN(SELECT("ID").FROM("LatestOrders"))
+				.ORDER_BY("ID").DESC()
+				.LIMIT(100)
+				.OFFSET(20)
+			.build();
+		...
+				CTest.cassertEquals(expected, actual.getSql());
+		...
+	
+Notice the nested functions?
+			.SUM(COUNT("ID"))
+            .COUNT(MAX("n_items"))
+            
+Yes, you can have as many nested functions as you require.
 
+Similar Projects
+------------------
+http://www.jooq.org/  ( This is polished but I wanted CAPSLOCK on the SQL keywords )
+
+http://code.google.com/p/squiggle-sql/  ( ..uhmm.. poor choice of words.. )
 
 BSD License
 
