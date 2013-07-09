@@ -99,37 +99,13 @@ https://news.ycombinator.com/item?id=5956867
 
 Updates from HN suggestions:
 
-	package com.ivanceras.fluent;
+	...
+	
+	import static com.ivanceras.fluent.StaticSQL.*;
 
-	import static org.junit.Assert.assertArrayEquals;
 
-	import org.junit.After;
-	import org.junit.AfterClass;
-	import org.junit.Before;
-	import org.junit.BeforeClass;
-	import org.junit.Test;
-	**import static com.ivanceras.fluent.StaticSQL.*;**
 
-	public class TestSQLBuilderMoreComplexFunctions {
-
-		@BeforeClass
-		public static void setUpBeforeClass() throws Exception {
-		}
-
-		@AfterClass
-		public static void tearDownAfterClass() throws Exception {
-		}
-
-		@Before
-		public void setUp() throws Exception {
-		}
-
-		@After
-		public void tearDown() throws Exception {
-		}
-
-		@Test
-		public void testRecursiveComplexFunctions(){
+	...
 			String expected =
 					" WITH LatestOrders AS (" +
 					"		SELECT SUM ( COUNT ( ID ) )," +
@@ -157,7 +133,11 @@ Updates from HN suggestions:
 					" WHERE "+
 					"	Orders.n_items > ? "+
 					"   AND Orders.ID IN ( SELECT ID FROM LatestOrders )" ;
-		
+
+		...	
+	
+In Fluent SQL
+	
 			Breakdown actual = 
 					WITH("LatestOrders", 
 						SELECT("CustomerName")
@@ -191,7 +171,5 @@ Updates from HN suggestions:
 			System.out.println("expected: \n"+expected);
 			System.out.println("actual: \n"+actual.getSql());
 			CTest.cassertEquals(expected, actual.getSql());
-		}
-
-	}
+	...
 
