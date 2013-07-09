@@ -99,13 +99,6 @@ https://news.ycombinator.com/item?id=5956867
 
 Updates from HN suggestions:
 
-	...
-	
-	import static com.ivanceras.fluent.StaticSQL.*;
-
-
-
-	...
 			String expected =
 					" WITH LatestOrders AS (" +
 					"		SELECT SUM ( COUNT ( ID ) )," +
@@ -138,6 +131,9 @@ Updates from HN suggestions:
 	
 In Fluent SQL
 	
+	import static com.ivanceras.fluent.StaticSQL.*;
+	...
+	
 			Breakdown actual = 
 					WITH("LatestOrders", 
 						SELECT("CustomerName")
@@ -168,6 +164,7 @@ In Fluent SQL
 					.WHERE("Orders.n_items").GREATER_THAN(0)
 					.AND("Orders.ID").IN(SELECT("ID").FROM("LatestOrders"))
 				.build();
+	...
 			System.out.println("expected: \n"+expected);
 			System.out.println("actual: \n"+actual.getSql());
 			CTest.cassertEquals(expected, actual.getSql());
