@@ -95,27 +95,29 @@ link to comments
 https://news.ycombinator.com/item?id=5956867
 
 Updates from HN suggestions:
+
 Usage of Static methods
-	...
-	public static SQL WITH(String name, SQL sql){
-		return new SQL().WITH(name, sql);
-	}
-	public static SQL SELECT(){
-		return new SQL().SELECT();
-	}
-	public static SQL COUNT(String column){
-		return new SQL().COUNT(column);
-	}
-	public static SQL COUNT(SQL sql){
-		return new SQL().COUNT(sql);
-	}
-	public static SQL SUM(String column){
-		return new SQL().SUM(column);
-	}
-	public static SQL SUM(SQL sql){
-		return new SQL().SUM(sql);
-	}
-	....
+		...
+	
+		public static SQL WITH(String name, SQL sql){
+			return new SQL().WITH(name, sql);
+		}
+		public static SQL SELECT(){
+			return new SQL().SELECT();
+		}
+		public static SQL COUNT(String column){
+			return new SQL().COUNT(column);
+		}
+		public static SQL COUNT(SQL sql){
+			return new SQL().COUNT(sql);
+		}
+		public static SQL SUM(String column){
+			return new SQL().SUM(column);
+		}
+		public static SQL SUM(SQL sql){
+			return new SQL().SUM(sql);
+		}
+		....
 
 			String expected =
 					" WITH LatestOrders AS (" +
