@@ -202,8 +202,15 @@ Notice the nested functions?
             
 Yes, you can have as many nested functions as you require.
 
+More examples
+-------------
+
+https://github.com/ivanceras/fluent-sql/tree/master/test/com/ivanceras/fluent
+
+
 Similar Projects
 ------------------
+
 http://www.jooq.org/  ( This is polished but I wanted CAPSLOCK on the SQL keywords )
 
 http://code.google.com/p/squiggle-sql/  ( ..uhmm.. poor choice of words.. )
