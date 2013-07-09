@@ -97,6 +97,7 @@ https://news.ycombinator.com/item?id=5956867
 Updates from HN suggestions:
 
 Usage of Static methods
+
 		...
 	
 		public static SQL WITH(String name, SQL sql){
@@ -118,6 +119,8 @@ Usage of Static methods
 			return new SQL().SUM(sql);
 		}
 		....
+
+A more complex example with nested functions
 
 			String expected =
 					" WITH LatestOrders AS (" +
