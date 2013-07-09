@@ -3,51 +3,78 @@ package com.ivanceras.fluent;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
-import com.ivanceras.fluent.SQL.Window.PartitionBy;
+import com.ivanceras.fluent.Clause.Case;
+import com.ivanceras.fluent.Clause.Condition;
+import com.ivanceras.fluent.Clause.Distinct;
+import com.ivanceras.fluent.Clause.DistinctOn;
+import com.ivanceras.fluent.Clause.Except;
+import com.ivanceras.fluent.Clause.Field;
+import com.ivanceras.fluent.Clause.From;
+import com.ivanceras.fluent.Clause.Function;
+import com.ivanceras.fluent.Clause.GroupBy;
+import com.ivanceras.fluent.Clause.Having;
+import com.ivanceras.fluent.Clause.Intersect;
+import com.ivanceras.fluent.Clause.Into;
+import com.ivanceras.fluent.Clause.Join;
+import com.ivanceras.fluent.Clause.Limit;
+import com.ivanceras.fluent.Clause.Offset;
+import com.ivanceras.fluent.Clause.On;
+import com.ivanceras.fluent.Clause.OrderBy;
+import com.ivanceras.fluent.Clause.Returning;
+import com.ivanceras.fluent.Clause.Set;
+import com.ivanceras.fluent.Clause.Type;
+import com.ivanceras.fluent.Clause.Union;
+import com.ivanceras.fluent.Clause.Update;
+import com.ivanceras.fluent.Clause.Using;
+import com.ivanceras.fluent.Clause.Values;
+import com.ivanceras.fluent.Clause.Where;
+import com.ivanceras.fluent.Clause.Window;
+import com.ivanceras.fluent.Clause.With;
 
-public class SQL {
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-	private LinkedHashMap<Integer, Object> callOrder = new LinkedHashMap<Integer, Object>();
+public class SQL{
+
+	
+	
+	private static Logger log = LogManager.getLogger("SQL");
+	
+	protected LinkedHashMap<Integer, Object> callOrder = new LinkedHashMap<Integer, Object>();
 	protected LinkedList<With> withQueries = new LinkedList<With>();
-	private Type type;
-	private LinkedList<Field> fields = new LinkedList<Field>();
-	private LinkedList<Function> functions = new LinkedList<Function>();
-	private LinkedList<Case> cases = new LinkedList<Case>();
-	private LinkedList<Set> set = new LinkedList<Set>();
-	private LinkedList<Distinct> distinctColumns = new LinkedList<Distinct>();
-	private From from;//first table
-	private Update update;
-	private Into into;
+	protected Type type;
+	protected LinkedList<Field> fields = new LinkedList<Field>();
+	protected LinkedList<Function> functions = new LinkedList<Function>();
+	protected LinkedList<Case> cases = new LinkedList<Case>();
+	protected LinkedList<Set> set = new LinkedList<Set>();
+	protected LinkedList<Distinct> distinctColumns = new LinkedList<Distinct>();
+	//Distinct and Distinct ON be separated as they are a bit complex to handle
+	protected LinkedList<DistinctOn> distinctOnColumns = new LinkedList<DistinctOn>();
+	protected From from;//first table
+	protected Update update;
+	protected Into into;
+	protected boolean doCommaField = false;
 
-	private LinkedList<Values> values = new LinkedList<Values>();
+	protected LinkedList<Values> values = new LinkedList<Values>();
 
-	private LinkedList<Join> joins  = new LinkedList<Join>();
-	private LinkedList<Using> using  = new LinkedList<Using>();
+	protected LinkedList<Join> joins  = new LinkedList<Join>();
 
-	private LinkedList<Union> union = new LinkedList<Union>();
-	private LinkedList<Intersect> intersect = new LinkedList<Intersect>();
-	private LinkedList<Except> except = new LinkedList<Except>();
-
-
-	private LinkedList<Where> whereStatements = new LinkedList<Where>();
-	private LinkedList<In> in = new LinkedList<In>();
-	private LinkedList<Exist> exist = new LinkedList<Exist>();
-
-	private LinkedList<OrderBy> orderBy = new LinkedList<OrderBy>();
-	private LinkedList<GroupBy> groupBy = new LinkedList<GroupBy>();
-	private LinkedList<Having> having = new LinkedList<Having>();
-
-	private LinkedList<Window> window = new LinkedList<Window>();
-	private LinkedList<PartitionBy> partitionBy = new LinkedList<PartitionBy>(); 
-	private LinkedList<Returning> returning = new LinkedList<Returning>();
+	protected LinkedList<Union> union = new LinkedList<Union>();
+	protected LinkedList<Intersect> intersect = new LinkedList<Intersect>();
+	protected LinkedList<Except> except = new LinkedList<Except>();
 
 
-	private Limit limit;
-	private Offset offset;
+	protected Where where;
 
-	public SQL(){
+	protected LinkedList<OrderBy> orderBy = new LinkedList<OrderBy>();
+	protected LinkedList<GroupBy> groupBy = new LinkedList<GroupBy>();
+	protected Having having;
 
-	}
+	protected LinkedList<Returning> returning = new LinkedList<Returning>();
+
+
+	protected Limit limit;
+	protected Offset offset;
 
 	private SQL called(Object call){
 		int nCall = callOrder.size();
@@ -101,7 +128,7 @@ public class SQL {
 
 	public SQL DISTINCT(String... columns){
 		for(String col : columns){
-			Distinct distinct = new Distinct(col, false);
+			Distinct distinct = new Distinct(col);
 			this.distinctColumns.add(distinct);
 			called(distinct);
 		}
@@ -109,15 +136,15 @@ public class SQL {
 	}
 	public SQL DISTINCT_ON(String... columns){
 		for(String col : columns){
-			Distinct distinct = new Distinct(col, true);
-			this.distinctColumns.add(distinct);
-			called(distinct);
+			DistinctOn distinctOn = new DistinctOn(col);
+			this.distinctOnColumns.add(distinctOn);
+			called(distinctOn);
 		}
 		return this;
 	}
 	public SQL FIELD(SQL sql){
 		Field field = new Field(sql);
-		field.sql = sql;
+		field.fieldSql = sql;
 		this.fields.add(field);
 		called(field);
 		return this;
@@ -130,46 +157,71 @@ public class SQL {
 		}
 		return this;
 	}
+	
 	public SQL SUM(SQL sql){
 		return function(Function.SUM, new Field(sql));
 	}
-
 	public SQL SUM(String column){
 		return function(Function.SUM, new Field(column));
 	}
+	
 	public SQL COUNT(SQL sql){
 		return function(Function.COUNT, new Field(sql));
 	}
 	public SQL COUNT(String column){
 		return function(Function.COUNT, new Field(column));
 	}
+	
+	public SQL MAX(SQL sql){
+		return function(Function.MAX, new Field(sql));
+	}
+	
 	public SQL MAX(String column){
 		return function(Function.MAX, new Field(column));
+	}
 
-	}
-	public static SQL MAX(Field field){
-		return new SQL().function(Function.MAX, field);
-	}
+	
 	public SQL MIN(String column){
 		return function(Function.MIN, new Field(column));
 	}
+	public SQL MIN(SQL sql){
+		return function(Function.MIN, new Field(sql));
+	}
+
+	
+	public SQL AVG(String column){
+		return function(Function.AVG, new Field(column));
+	}
+	public SQL AVG(SQL sql){
+		return function(Function.AVG, new Field(sql));
+	}
+
+	public SQL LOWER(String column){
+		return function(Function.LOWER, new Field(column));
+	}
+	public SQL LOWER(SQL sql){
+		return function(Function.LOWER, new Field(sql));
+	}
+	public SQL UPPER(String column){
+		return function(Function.LOWER, new Field(column));
+	}
+	public SQL UPPER(SQL sql){
+		return function(Function.LOWER, new Field(sql));
+	}
+	
 	
 	private SQL function(String functionName, Field field){
 		Function function  = new Function(functionName, field);
+		return function(function);
+	}
+	
+	private SQL function(Function function){
 		this.functions.add(function);
 		return called(function);
 	}
-	public SQL AVG(String column){
-		Function function  = new Function(Function.AVG, new Field(column));
-		this.functions.add(function);
-		return called(function);
-
-	}
+	
 	public SQL AS(String columnAs){
-		Field lastField = getLastField();
 		Object lasCall = getLastCall();
-		System.err.println("lastcall: "+lasCall);
-		System.err.println("lastField: "+lastField);
 		if(lasCall instanceof Field){
 			((Field)lasCall).columnAs = columnAs;
 		}
@@ -179,14 +231,6 @@ public class SQL {
 		return this;
 	}
 
-	private Field getLastField(){
-		int size = fields.size();
-		if(size < 1){
-			return null;
-		}
-		Field lastField = fields.get(size-1);
-		return lastField;
-	}
 	private Join getLastJoin(){
 		int calls = callOrder.size();
 		if(calls < 1){
@@ -258,12 +302,13 @@ public class SQL {
 		On on = new On(column1, column2);
 		return on(on);
 	}
-	
+
 	private SQL on(On on){
 		Join lastJoin = getLastJoin();
 		lastJoin.on.add(on);
 		return called(on);
 	}
+
 	/**
 	 * And used in join on context
 	 * Careful, might be confused with AND in Where
@@ -271,15 +316,8 @@ public class SQL {
 	 * @param field2
 	 * @return
 	 */
-	public SQL AND(String arg1, String arg2){
-		Object lastClause = getLastClauseCallWhetherWhereOrOn();
-		if(lastClause instanceof On){
-			ON(arg1, arg2);
-		}
-		if(lastClause instanceof Where){
-			WHERE(arg1, arg2);
-		}
-		return this;
+	public SQL AND(String column1, String column2){
+		return ON(column1, column2);
 	}
 
 	public Object getLastClauseCallWhetherWhereOrOn(){
@@ -298,8 +336,9 @@ public class SQL {
 
 	public SQL USING(String... column){
 		for(String col : column){
+			Join lastJoin = getLastJoin();
 			Using using = new Using(col);
-			this.using.add(using);
+			lastJoin.using.add(using);
 			called(using);
 		}
 		return this;
@@ -384,148 +423,220 @@ public class SQL {
 		return called(set);
 	}
 
-	public SQL OR(String field, String operator, Object value){
-		Where where = new Where(field, operator, value);
-		where.connector = Where.OR;
-		this.whereStatements.add(where);
-		return called(where);
-	}
-
-	public SQL OR(String expression){
-		Where where = new Where(expression);
-		where.connector = Where.OR;
-		this.whereStatements.add(where);
-		return called(whereStatements);
-	}
-
-	public SQL WHERE(String field, String operator, Object value){
-		Where where = new Where(field, operator, value);
-		this.whereStatements.add(where);
-		return called(where);
-	}
-	public SQL WHERE(String field, String operator){
-		Where where = new Where(field, operator);
-		this.whereStatements.add(where);
-		return called(where);
-	}
-	public SQL WHERE_NOT_NULL(String field){
-		return WHERE(field, Where.IS_NOT_NULL);
-	}
-	public SQL WHERE_NULL(String field){
-		return WHERE(field, Where.IS_NULL);
-	}
-	public SQL WHERE(String field, String operator, SQL sql){
-		Where where = new Where(field, operator, sql);
-		this.whereStatements.add(where);
-		return called(where);
-	}
-
 	public SQL WHERE(String column){
-		Where where = new Where(column);
-		this.whereStatements.add(where);
-		return called(where);
+		if(where == null){
+			where = new Where();
+		}
+		Condition condition = new Condition(column);
+		where.add(condition);
+		return called(condition);
 	}
+
 	public SQL AND(String column){
-		return WHERE(column);
+		Condition condition = new Condition(column);
+		where.and(condition);
+		return called(condition);
 	}
-
-	public SQL EQUAL_TO(Object value){
-		return equality(Where.EQUAL, value);
-	}
-	public SQL EQUAL_TO_FIELD(String column) {
-		return equality(Where.EQUAL, new Field(column));
-	}
-
-	public SQL GREATER_THAN(Object value){
-		return equality(Where.GREATER_THAN, value);
-	}
-	public SQL GREATER_THAN_OR_EQUAL(Object value){
-		return equality(Where.GREATER_THAN_OR_EQUAL, value);
-	}
-	public SQL LESS_THAN(Object value){
-		return equality(Where.LESS_THAN, value);
-	}
-	public SQL LESS_THAN_OR_EQUAL(Object value){
-		return equality(Where.LESS_THAN_OR_EQUAL, value);
-	}
-	public SQL NOT_EQUAL_TO(Object value){
-		return equality(Where.NOT_EQUAL, value);
-	}
-	public SQL IS_NOT_NULL(){
-		return equality(Where.IS_NOT_NULL);
-	}
-	public SQL IS_NULL(){
-		return equality(Where.IS_NULL);
-	}
-
-	private SQL equality(String equality){
-		return equality(equality, null);
-	}
-
-	private SQL equality(String equality, Object value){
-		Object lastCall = getLastClauseCallWhetherWhereOrOn();
-		if(lastCall instanceof Where){
-			Where where = ((Where)lastCall);
-			where.operator = equality;
-			where.value = value;
-		}
-		if(lastCall instanceof On){
-			On on = ((On)lastCall);
-			on.column2 = (String)value;
-		}
-		return this;
-	}
-	
-	private SQL equality(String equality, Field column){
-		Object lastCall = getLastClauseCallWhetherWhereOrOn();
-		if(lastCall instanceof Where){
-			Where where = ((Where)lastCall);
-			where.operator = equality;
-			where.field2 = column;
-		}
-		return this;
-	}
-
-
-	public SQL AND(String field, String operator, Object value){
-		return WHERE(field, operator, value);
-	}
-	public SQL AND(String field, String operator, SQL sql){
-		return WHERE(field, operator, sql);
+	public SQL OR(String column){
+		Condition condition = new Condition(column);
+		where.or(condition);
+		return called(condition);
 	}
 
 	/**
-	 * As much as possible, don't use this
-	 * @param expression
-	 * @return
+	 * 
+	 * @return the last condition appropriately, 
+	 * when there is no having clause, 
+	 * the last condition is from where clause
 	 */
-	@Deprecated
-	public SQL IN(String... expression){
-		In in = new In(expression);
-		this.in.add(in);
-		return called(in);
+	private Condition getLastCondition(){
+		//give priority to having clause first
+		if(this.having != null && this.having.conditions.size() > 0){
+			Condition lastHavingCond = this.having.conditions.get(this.having.conditions.size()-1);
+			if(lastHavingCond instanceof Condition){
+				return lastHavingCond;
+			}
+		}
+		if(this.where != null && this.where.conditions.size() > 0){
+			Condition lastWhereCond = this.where.conditions.get(this.where.conditions.size()-1);
+			if(lastWhereCond instanceof Condition){
+				return lastWhereCond;
+			}
+		}
+		//TODO: return the last condition of the field
+		return null;
 	}
+
+	public SQL EQUAL_TO(Object value){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.EQUAL;
+		condition.field2 = new Field(value);
+		return called(condition);
+	}
+	public SQL EQUAL_TO_FIELD(String column) {
+		Condition condition = getLastCondition();
+		condition.equality = Condition.EQUAL;
+		condition.field2 = new Field(column);
+		return called(condition);
+	}
+
+	public SQL GREATER_THAN(Object value){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.GREATER_THAN;
+		condition.field2 = new Field(value);
+		return called(condition);
+	}
+	public SQL GREATER_THAN_OR_EQUAL(Object value){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.GREATER_THAN_OR_EQUAL;
+		condition.field2 = new Field(value);
+		return called(condition);
+	}
+	public SQL LESS_THAN(Object value){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.LESS_THAN;
+		condition.field2 = new Field(value);
+		return called(condition);
+	}
+	public SQL LESS_THAN_OR_EQUAL(Object value){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.LESS_THAN_OR_EQUAL;
+		condition.field2 = new Field(value);
+		return called(condition);
+	}
+	public SQL NOT_EQUAL_TO(Object value){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.NOT_EQUAL;
+		condition.field2 = new Field(value);
+		return called(condition);
+	}
+	public SQL NOT_EQUAL_TO_FIELD(String column){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.NOT_EQUAL;
+		condition.field2 = new Field(column);
+		return called(condition);
+	}
+	public SQL IS_NOT_NULL(){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.IS_NOT_NULL;
+		return called(condition);
+	}
+	public SQL IS_NULL(){
+		Condition condition = getLastCondition();
+		condition.equality = Condition.IS_NULL;
+		return called(condition);
+	}
+
+	//	public SQL AND(String field, String operator, Object value){
+	//		return WHERE(field, operator, value);
+	//	}
+	//	public SQL AND(String field, String operator, SQL sql){
+	//		return WHERE(field, operator, sql);
+	//	}
+
 	public SQL IN(SQL sql){
-		In in = new In(sql);
-		this.in.add(in);
-		return called(in);
+		Object lastCall = getLastCall();
+		if(lastCall instanceof Condition){
+			Condition condition = (Condition) lastCall;
+			condition.equality = Condition.IN;
+			condition.field2 = new Field(sql);
+			return called(condition);
+		}
+		else{
+			Condition condition = new Condition();
+			condition.equality = Condition.NOT_IN;
+			condition.field2 = new Field(sql);
+			Field field = new Field(condition);
+			this.fields.add(field);
+			return called(field);
+		}
+	}
+	public SQL IN(Object... value){
+		Object lastCall = getLastCall();
+		if(lastCall instanceof Condition){
+			Condition condition = (Condition) lastCall;
+			condition.equality = Condition.IN;
+			condition.field2 = new Field(value);
+			return called(condition);
+		}
+		else{
+			Condition condition = new Condition();
+			condition.equality = Condition.IN;
+			condition.field2 = new Field(value);
+			Field field = new Field(condition);
+			this.fields.add(field);
+			return called(field);
+		}
+	}
+	public SQL NOT_IN(Object... value){
+		Object lastCall = getLastCall();
+		if(lastCall instanceof Condition){
+			Condition condition = (Condition) lastCall;
+			condition.equality = Condition.NOT_IN;
+			condition.field2 = new Field(value);
+			return called(condition);
+		}
+		else{
+			Condition condition = new Condition();
+			condition.equality = Condition.NOT_IN;
+			condition.field2 = new Field(value);
+			Field field = new Field(condition);
+			this.fields.add(field);
+			return called(field);
+		}
 	}
 	public SQL NOT_IN(SQL sql){
-		In in = new In(sql, false);
-		this.in.add(in);
-		return called(in);
+		Object lastCall = getLastCall();
+		if(lastCall instanceof Condition){
+			Condition condition = (Condition) lastCall;
+			condition.equality = Condition.NOT_IN;
+			condition.field2 = new Field(sql);
+			return called(condition);
+		}
+		else{
+			Condition condition = new Condition();
+			condition.equality = Condition.NOT_IN;
+			condition.field2 = new Field(sql);
+			Field field = new Field(condition);
+			this.fields.add(field);
+			return called(field);
+		}
 	}
 
 	public SQL EXIST(SQL sql){
-		Exist exist = new Exist(sql);
-		this.exist.add(exist);
-		return called(exist);
+		Object lastCall = getLastCall();
+		if(lastCall instanceof Condition){
+			Condition condition = (Condition) lastCall;
+			condition.equality = Condition.EXISTS;
+			condition.field2 = new Field(sql);
+			return called(condition);
+		}
+		else{
+			Condition condition = new Condition();
+			condition.equality = Condition.EXISTS;
+			condition.field2 = new Field(sql);
+			Field field = new Field(condition);
+			this.fields.add(field);
+			return called(field);
+		}
 	}
 
 	public SQL NOT_EXIST(SQL sql){
-		Exist exist = new Exist(sql);
-		this.exist.add(exist);
-		return called(exist);
+		Object lastCall = getLastCall();
+		if(lastCall instanceof Condition){
+			Condition condition = (Condition) lastCall;
+			condition.equality = Condition.NOT_EXISTS;
+			condition.field2 = new Field(sql);
+			return called(condition);
+		}
+		else{
+			Condition condition = new Condition();
+			condition.equality = Condition.NOT_EXISTS;
+			condition.field2 = new Field(sql);
+			Field field = new Field(condition);
+			this.fields.add(field);
+			return called(field);
+		}
 	}
 
 	public SQL RETURNING(String column){
@@ -551,10 +662,26 @@ public class SQL {
 		}
 		return this;
 	}
+	public SQL DESC(){
+		if(this.orderBy.size() > 0){
+			OrderBy lastOrderBy =  this.orderBy.getLast();
+			lastOrderBy.asc = false;
+			return called(lastOrderBy);
+		}
+		return null;
+	}
 
 	public SQL GROUP_BY(String... column){
 		for(String col : column){
 			GroupBy group = new GroupBy(col);
+			this.groupBy.add(group);
+			called(group);
+		}
+		return this;
+	}
+	public SQL GROUP_BY(SQL... sql){
+		for(SQL sq : sql){
+			GroupBy group = new GroupBy(sq);
 			this.groupBy.add(group);
 			called(group);
 		}
@@ -565,16 +692,15 @@ public class SQL {
 	 * @param expression
 	 * @return
 	 */
-	@Deprecated
-	public SQL HAVING(String expression){
-		Having having = new Having(expression);
-		this.having.add(having);
+	public SQL HAVING(String column1){
+		Condition condition = new Condition(column1);
+		Having having = new Having(condition);
+		this.having  = having;
 		return called(having);
 	}
 
 	public SQL WINDOW(String name, String expression){
 		Window window = new Window(name, expression);
-		this.window.add(window);
 		return called(window);
 	}
 
@@ -588,582 +714,160 @@ public class SQL {
 		return called(offset);
 	}
 
-	///////////////////////////////////
-	//
-	// SQL inner Class
-	//
-	////////////////////////////////////////
 
-	public class Type{
-		protected String type;
-		public static final String SELECT = "SELECT";
-		public static final String INSERT = "INSERT";
-		public static final String UPDATE = "UPDATE";
-		public static final String DELETE = "DELETE";
-
-		public Type(String type){
-			this.type = type;
-		}
-	}
-
-	public class With{
-		protected String name;
-		protected boolean recursive;
-		protected SQL sql;
-
-		public With(String name, SQL sql, boolean recursive){
-			this.name = name;
-			this.sql = sql;
-			this.recursive = recursive;
-		}
-	}
-
-	public class Distinct{
-		protected boolean ON;
-		protected String column;
-		protected SQL sql;
-		public Distinct(String column, boolean ON){
-			this.column = column;
-			this.ON = ON;
-		}
-		public Distinct(SQL sql, boolean ON){
-			this.sql = sql;
-			this.ON = ON;
-		}
-		public Distinct(SQL sql){
-			this.sql = sql;
-		}
-	}
-
-	public class Field{
-		protected String column;
-		protected SQL sql;
-		protected String columnAs;
-		//TODO: add Value field argument as well
-		public Field(String field){
-			this.column = field;
-		}
-		public Field(SQL sql){
-			this.sql = sql;
-		}
+	public Breakdown build() {
+		long t1 = System.nanoTime();
+		Breakdown bk = new Breakdown();
+		build(bk, 0, this);
+		long t2 = System.nanoTime();
+		long took = t2 - t1;
+		log.trace("BUILDING SQL TOOK "+((float)took/1000000.0f)+" ms");
+		return bk;
 	}
 	
-	public class Function{
-		public static final String MAX = "MAX";
-		public static final String MIN = "MIN";
-		public static final String COUNT = "COUNT";
-		public static final String SUM = "SUM";
-		public static final String AVG = "AVG";
-		protected String function;
-		protected LinkedList<Field> functionFields = new LinkedList<Field>();
-		protected String functionAs;
-		
-		public Function(String function, Field field){
-			this.function = function;
-			this.functionFields.add(field);
-		}
-		public Function(String function, Field... field){
-			this.function = function;
-			for(Field f : field){
-				this.functionFields.add(f);
-			}
-		}
-	}
-	
-	
-	
-	public class Set{
-		protected String column;
-		protected Object value;
-		public Set(String column){
-			this.column = column;
-		}
-		public Set(String column, Object value){
-			this.column = column;
-			this.value = value;
-		}
+	public void build(Breakdown bk, int tabs) {
+		build(bk, tabs, this);
 	}
 
-	public class Case{
-		protected When when;
-		protected Then then;
-		protected Else elseCase;
-
-		public class When{
-			protected String expression;
-			protected SQL sql;
-			public When(String expression){
-				this.expression = expression;
-			}
-			public When(SQL sql){
-				this.sql = sql;
-			}
-		}
-		public class Then{
-			protected String expression;
-			protected SQL sql;
-			public Then(String expression){
-				this.expression = expression;
-			}
-			public Then(SQL sql){
-				this.sql = sql;
-			}
-
-		}
-		public class Else{
-			protected String expression;
-			protected SQL sql;
-			public Else(String expression){
-				this.expression = expression;
-			}
-			public Else(SQL sql){
-				this.sql = sql;
-			}
-		}
-
-	}
-
-
-	public class From{
-		protected String table;
-		public From(String table){
-			this.table = table;
-		}
-	}
-	public class Into{
-		protected String table;
-		public Into(String table){
-			this.table = table;
-		}
-	}
-	public class Update{
-		protected String table;
-		public Update(String table){
-			this.table = table;
-		}
-	}
-
-	public class Values{
-		protected Object singleValue;
-		protected SQL sql;
-		public Values(Object value){
-			this.singleValue = value;
-		}
-		public Values(SQL sql){
-			this.sql = sql;
-		}
-	}
-
-	public class Join{
-		public static final String INNER_JOIN = "INNER JOIN";
-		public static final String LEFT_JOIN = "LEFT JOIN";
-		public static final String LEFT_OUTER_JOIN = "LEFT OUTER JOIN";
-		public static final String RIGHT_JOIN = "RIGHT JOIN";
-		public static final String RIGHT_OUTER_JOIN = "RIGHT OUTER JOIN";
-		public static final String CROSS_JOIN = "CROSS JOIN";
-
-		protected String joinType;
-		protected String table;
-		protected LinkedList<On> on = new LinkedList<On>();
-
-
-		public Join(String joinType, String table){
-			this.joinType = joinType;
-			this.table = table;
-		}
-
-	}
-
-	public class On{
-		protected String column1;
-		protected String column2;
-		public On(String column1){
-			this.column1 = column1;
-		}
-		public On(String column1, String column2){
-			this.column1 = column1;
-			this.column2 = column2;
-		}
-	}
-	public class Using{
-		protected String column;
-		public Using(String column){
-			this.column = column;
-		}
-	}
-	public class Union{
-		protected boolean ALL;
-		protected SQL sql;
-		public Union(boolean ALL, SQL sql){
-			this.ALL = ALL;
-			this.sql = sql;
-		}
-	}
-	public class Intersect{
-		protected boolean ALL;
-		protected SQL sql;
-		public Intersect(boolean ALL, SQL sql){
-			this.ALL = ALL;
-			this.sql = sql;
-		}
-	}
-	public class Except{
-		protected boolean ALL;
-		protected SQL sql;
-		public Except(boolean ALL, SQL sql){
-			this.ALL = ALL;
-			this.sql = sql;
-		}
-	}
-
-	public class Limit{
-		protected int limit;
-		public Limit(int limit){
-			this.limit = limit;
-		}
-	}
-
-	public class Offset{
-		protected int offset;
-		public Offset(int offset){
-			this.offset = offset;
-		}
-	}
-
-	public class Where{
-		protected String connector;
-		protected Field field1;
-		protected String operator;
-		protected Object value;
-		protected SQL sql;
-		public Field field2;//When equating columns
-		//		protected String expression;
-		protected LinkedList<String> functionColumn = new LinkedList<String>();
-		protected LinkedList<String> functionValue = new LinkedList<String>();
-		protected LinkedList<Where> nestedWhere;
-
-		public static final String LESS_THAN = "<";
-		public static final String LESS_THAN_OR_EQUAL = "<=";
-		public static final String EQUAL = "=";
-		public static final String GREATER_THAN = ">";
-		public static final String GREATER_THAN_OR_EQUAL = ">=";
-		public static final String NOT_EQUAL = "!=";
-		public static final String IN = "IN";
-		public static final String NOT_IN = "NOT IN";
-		public static final String LIKE = "LIKE";
-		//		public static final String NOT_NULL = "NOT NULL";
-		public static final String NULL = "NULL";
-		public static final String IS_NULL = "IS NULL";	
-		public static final String IS_NOT_NULL = "IS NOT NULL";
-
-		public final static String AND = "AND";
-		public final static String OR = "OR";
-
-		public Where(String column, String operator, Object value){
-			this(column, operator);
-			this.value = value;
-		}
-		
-		public Where(String column, String operator, SQL sql){
-			this(column,operator);
-			this.sql = sql;
-		}
-
-		public Where(String column, String operator){
-			this(column);
-			this.operator = operator;
-		}
-
-
-
-		public Where(String column, SQL sql){
-			this(column);
-			this.sql = sql;
-		}
-
-		public Where(String column){
-			this.field1 = new Field(column);
-		}
-
-		public Where and(Where where){
-			where.connector = AND;
-			nestedWhere.add(where);
-			return this;
-		}
-		public Where or(Where where){
-			where.connector = OR;
-			nestedWhere.add(where);
-			return this;
-		}
-
-		public void setColumnFunction(String... function){
-			for(String f : function){
-				this.functionColumn.add(f);
-			}
-		}
-		public void setValueFunction(String... function){
-			for(String f : function){
-				this.functionValue.add(f);
-			}
-		}
-
-
-	}
-
-	public class In{
-		protected LinkedList<String> values;
-		protected boolean in;
-		protected SQL sql;
-
-		public In(String[] value){
-			this(value, true);
-		}
-
-		public In(String[] value, boolean in){
-			for(String v : value){
-				values.add(v);
-			}
-			this.in = in;
-		}
-		public In(SQL sql){
-			this(sql, true);
-		}
-		public In(SQL sql, boolean in){
-			this.sql = sql;
-			this.in = in;
-		}
-	}
-
-	public class Exist{
-		protected SQL sql;
-		protected boolean exist;
-
-		public Exist(SQL sql){
-			this(sql, true);
-		}
-
-		public Exist(SQL sql, boolean exist){
-			this.sql = sql;
-			this.exist = exist;
-		}
-	}
-
-	public class OrderBy{
-		protected String column;
-		protected boolean asc;
-		public OrderBy(String column){
-			this.column = column;
-			this.asc = true;
-		}
-		public OrderBy(String column, boolean asc){
-			this.column = column;
-			this.asc = asc;
-		}
-
-	}
-	public class GroupBy{
-		protected String column;
-		public GroupBy(String column){
-			this.column = column;
-		}
-
-	}
-	public class Having{
-		protected String condition;
-		public Having(String condition){
-			this.condition = condition;
-		}
-	}
-
-	public class Window{
-		protected String name;
-		protected String column;
-		protected String function;
-		protected String expression;
-		protected Over over;
-
-		public class PartitionBy{
-			protected String column;
-			protected OrderBy orderBy;
-			public PartitionBy(String column, OrderBy orderBy){
-				this.column = column;
-				this.orderBy = orderBy;
-			}
-			public PartitionBy(String column){
-				this.column = column;
-			}
-		}
-		public class Over{
-			protected PartitionBy partitionBy;
-			protected String alias;
-			protected Over(PartitionBy partitionBy, String alias){
-				this.partitionBy = partitionBy;
-				this.alias = alias;
-			}
-		}
-
-		public Window(String name, String expression){
-			this.name = name;
-			this.expression = expression;
-		}
-
-	}
-
-
-	public class Returning{
-		protected String column;
-		public Returning(String column){
-			this.column = column;
-		}
-	}
-
-	public class Breakdown{
-
-		public String sql;
-		public Object[] parameters;
-		boolean doComma = false;
-		public Breakdown(String sql, Object[] parameters){
-			this.sql = sql;
-			this.parameters = parameters;
-		}
-	}
-	
 	/**
-	 * Build this SQL object
-	 * @return
+	 * build all the complete SQL statement by assembling the fragments (clause statements)
 	 */
-	public Breakdown build(){
-		return build(this, 0);
+	public void build(Breakdown bk, int tabs, SQL sql) {
+		sql.doCommaField = false;
+		buildClauseAllCTEs(bk, tabs, sql);
+		buildClauseType(bk, tabs, sql);
+		buildClauseAllDistinctOnColumns(bk, tabs, sql);
+		buildClauseAllDistinctColumns(bk, tabs, sql);
+		buildClauseAllFunctions(bk, tabs, sql);
+		buildClauseAllFields(bk, tabs, sql);
+		buildClauseInto(bk, tabs, sql);
+		buildClauseUpdate(bk, tabs, sql);
+		buildClauseAllSet(bk, tabs, sql);
+		buildClauseFrom(bk, tabs, sql);
+		buildClauseAllJoin(bk, tabs, sql);
+		buildClauseWhere(bk, tabs, sql);
+		buildClauseAllUnion(bk, tabs, sql);//TODO: find a resolution to whether where or union comes first
+		buildClauseAllIntersect(bk, tabs, sql);
+		buildClauseAllExcept(bk, tabs, sql);
+		buildClauseAllGroupBy(bk, tabs, sql);
+		buildClauseAllHaving(bk, tabs, sql);
+		buildClauseAllValues(bk, tabs, sql);
+		buildClauseAllOrderBy(bk, tabs, sql);
+		buildClauseLimit(bk, tabs, sql);
+		buildClauseOffset(bk, tabs, sql);
+
 	}
-	
-	/**
-	 * Warning: Use the the protected fields from sql object, or else would end up using the class instance variable which would have a different parameters
-	 * @param sql
-	 * @param tabs
-	 * @return
-	 */
-	private Breakdown build(SQL sql, int tabs){
-		LinkedList<Object> parameters = new LinkedList<Object>(); 
-		StringBuilder sb = new StringBuilder();
 
-
+	public void buildClauseAllCTEs(Breakdown bk, int tabs, SQL sql) {
 		/////////////////////////////
-		// build the WTE with query
+		// build the CTE with query
 		//////////////////////////////
+		boolean doComma = false;
 		for(With with : sql.withQueries){
-			sb.append(line(tabs));
-			sb.append(" WITH");
+			bk.append(Clause.line(tabs));
+			if(doComma){
+				bk.append(",");
+			}else{
+				bk.append(" WITH");
+				doComma = true;
+			}
 			if(with.recursive){
-				sb.append(" RECURSIVE");
+				bk.append(" RECURSIVE");
 			}
-			sb.append(" "+with.name);
-			sb.append(" AS ");
-			if(with.sql != null){
-				Breakdown withBreakdown = build(with.sql, tabs);
-				sb.append(" (");
-				sb.append(line(tabs));
-				sb.append(tabs(tabs+1)+" "+withBreakdown.sql);
-				for(Object p : withBreakdown.parameters){
-					parameters.add(p);
-				}
-				sb.append(line(tabs));
-				sb.append(" )");
-				sb.append(line(0));
-			}
+			with.build(bk, tabs);
 		}
+	}
+
+	public void buildClauseType(Breakdown bk, int tabs, SQL sql) {
 		if(sql.type != null){
-			if(sql.type.type.equals(Type.SELECT)){
-				sb.append(tabs(tabs));
-				sb.append(" SELECT");
-			}else if(sql.type.type.equals(Type.INSERT)){
-				sb.append(tabs(tabs));
-				sb.append(" INSERT");
-			}else if(sql.type.type.equals(Type.UPDATE)){
-				sb.append(tabs(tabs));
-				sb.append(" UPDATE");
-			}else if(sql.type.type.equals(Type.DELETE)){
-				sb.append(tabs(tabs));
-				sb.append(" DELETE");
-			}
+			sql.type.build(bk, tabs);
 		}
+	}
+
+	public void buildClauseAllDistinctOnColumns(Breakdown bk, int tabs, SQL sql) {
 		//////////////////////////////
-		// DISTINCT columns
+		// DISTINCT ON columns
 		///////////////////////////////
-		boolean doCommaDistinct = false;
 		boolean doDistinctClause = true;
-		boolean doOnDistinctClause = true;
 		boolean parenthesisOpened = false;
 		int distinctIndex = 0;
-		int totalDistinct = sql.distinctColumns.size();
-		for(Distinct distinct : sql.distinctColumns){
-			if(doCommaDistinct){
-				sb.append(",");
-				sb.append(line(tabs+2));
+		int totalDistinct = sql.distinctOnColumns.size();
+		if(sql.doCommaField){
+			bk.append(",");
+		}
+		boolean doComma = false;
+		for(DistinctOn distinctOn : sql.distinctOnColumns){
+			if(doComma){
+				bk.append(",");
+				bk.line(tabs+2);
 			}else{
-				doCommaDistinct=true;
+				doComma=true;
 			}
 			if(doDistinctClause){
-				sb.append(" DISTINCT");
+				bk.append(" DISTINCT");
 				doDistinctClause = false;
+				bk.append(" ON");
+				bk.append(" (");
+				parenthesisOpened = true;
 			}
-			if(distinct.ON){
-				if(doOnDistinctClause){
-					sb.append(" ON");
-					doOnDistinctClause = false;
-					sb.append(" (");
-					parenthesisOpened = true;
-				}
-			}
-			if(distinct.column != null){
-				sb.append(" "+distinct.column);
-			}
+			distinctOn.build(bk, tabs);
 			if(parenthesisOpened && distinctIndex == totalDistinct - 1){
-				sb.append(" )");
+				bk.append(" )");
 				parenthesisOpened = false;
-			}
-			if(distinct.sql != null){
-				Breakdown fieldBreakdown = build(distinct.sql, tabs);
-				sb.append(" "+fieldBreakdown.sql);
-				for(Object fieldParam : fieldBreakdown.parameters){
-					parameters.add(fieldParam);
-				}
 			}
 			distinctIndex++;
 		}
-		//////////////////////////
-		/// build the functions
-		///////////////////////////
-		Breakdown functionBreakdown = buildFunctionList(tabs, sql.functions);
-		sb.append(" "+functionBreakdown.sql);
-		for(Object functionParam : functionBreakdown.parameters){
-			parameters.add(functionParam);
+	}
+	
+	public void buildClauseAllDistinctColumns(Breakdown bk, int tabs, SQL sql) {
+		//////////////////////////////
+		// DISTINCT columns
+		///////////////////////////////
+		boolean doDistinctClause = true;
+		if(sql.doCommaField){
+			bk.append(",");
 		}
+		boolean doComma = false;
+		for(Distinct distinct : sql.distinctColumns){
+			if(doComma){
+				bk.append(",");
+				bk.line(tabs+2);
+			}else{
+				doComma=true;
+			}
+			if(doDistinctClause){
+				bk.append(" DISTINCT");
+				doDistinctClause = false;
+			}
+			distinct.build(bk, tabs);
+		}
+	}
 
-		/////////////////////////////
-		/// build the fields
-		/////////////////////////////
-		Breakdown fieldsBreakdown = buildFieldList(tabs, sql.fields, functionBreakdown.doComma);
-		sb.append(" "+fieldsBreakdown.sql);
-		for(Object fieldsParam : fieldsBreakdown.parameters){
-			parameters.add(fieldsParam);
+	public void buildClauseAllFunctions(Breakdown bk, int tabs, SQL sql) {
+		for(Function function : sql.functions){
+			if(sql.doCommaField){
+				bk.append(",");
+			}else{sql.doCommaField=true;}
+			function.build(bk, tabs);
 		}
-		///////////////////////////
-		// INTO clause
-		///////////////////////////
+	}
+
+	public void buildClauseAllFields(Breakdown bk, int tabs, SQL sql) {
+		for(Field field : sql.fields){
+			if(sql.doCommaField){
+				bk.append(",");
+			}else{sql.doCommaField=true;}
+			field.build(bk, tabs);
+		}
+	}
+
+	public void buildClauseInto(Breakdown bk, int tabs, SQL sql) {
 		if(sql.into != null){
-			sb.append(line(tabs+1));
-			sb.append(" INTO");
-			sb.append(" "+sql.into.table);
+			sql.into.build(bk, tabs);
 		}
-		///////////////////////////
-		// UPDATE clause
-		///////////////////////////
-		if(sql.update != null){
-			sb.append(line(tabs+1));
-			//			sb.append(" UPDATE");
-			sb.append(" "+sql.update.table);
-		}
+	}
 
+	public void buildClauseAllSet(Breakdown bk, int tabs, SQL sql) {
 		/////////////////////////////////
 		// SET clause
 		///////////////////////////////
@@ -1171,240 +875,99 @@ public class SQL {
 		boolean doCommaSetClause = false;
 		for(Set set : sql.set){
 			if(doSetClause){
-				sb.append(" SET");
+				bk.append(" SET");
 				doSetClause = false;
 			}
 			if(doCommaSetClause){
-				sb.append(",");
+				bk.append(",");
 			}else{doCommaSetClause = true;}
-			sb.append(" "+set.column);
-			sb.append(" =");
-			sb.append(" ?");
-			parameters.add(set.value);
+			set.build(bk, tabs);
 		}
+	}
 
-		///////////////////////////
-		// FROM clause
-		///////////////////////////
+	public void buildClauseFrom(Breakdown bk, int tabs, SQL sql) {
 		if(sql.from != null){
-			sb.append(line(tabs+1));
-			sb.append(" FROM");
-			sb.append(" "+sql.from.table);
+			bk.line(tabs+1);
+			sql.from.build(bk, tabs);
 		}
+	}
 
-		//////////////////////////
-		// JOIN
-		///////////////////////////
-		for(SQL.Join join : sql.joins){
-			sb.append(line(tabs+2));
-			sb.append(" "+join.joinType);
-			sb.append(" "+join.table);
-			///////////////////////////
-			// JOIN ON's
-			///////////////////////////
-			boolean doOnJoinClause = true;
-			for(On on : join.on){
-				sb.append(line(tabs+2));
-				if(doOnJoinClause){
-					sb.append(" ON");
-					doOnJoinClause = false;
-				}else{
-					sb.append(" AND");
-				}
-				sb.append(" "+on.column1);
-				sb.append(" = ");
-				sb.append(" "+on.column2);
-			}
+	public void buildClauseAllJoin(Breakdown bk, int tabs, SQL sql) {
+		for(Join join : sql.joins){
+			bk.line(tabs+2);
+			join.build(bk, tabs);
 		}
+	}
 
-		///////////////////////////
-		// USING
-		///////////////////////////
-		boolean doUsingClause = true;
-		boolean doCommaUsing = false;
-		for(Using using : sql.using){
-			if(doUsingClause){
-				sb.append(line(tabs+2));
-				sb.append(" USING");
-				doUsingClause = false;
-			}
-			if(doCommaUsing){
-				sb.append(",");
-			}else{doCommaUsing = true;}
-			sb.append(" "+using.column);
-		}
-		///////////////////////////////
-		/// WHERE clause
-		///////////////////////////////
-		boolean doWhere = true;
-		for(Where where: sql.whereStatements){
-			if(doWhere){
-				sb.append(line(tabs+1));
-				sb.append(" WHERE");
-				doWhere = false;
-			}
-			else{
-				sb.append(line(tabs+1));
-				sb.append(" AND");
-			}
-			if(where.connector!=null){
-				sb.append(line(tabs));
-				sb.append(" "+where.connector);
-			}
-			if(where.field1 != null){
-				Breakdown wherefieldBreakdown = buildField(tabs, where.field1, false);
-				sb.append(" "+wherefieldBreakdown.sql);
-				for(Object p : wherefieldBreakdown.parameters){
-					parameters.add(p);
-				}
-			}
-			if(where.operator != null){
-				sb.append(" "+where.operator);
-			}
-			if(where.value != null){
-				sb.append(" ?");
-				parameters.add(where.value);
-			}
-			if(where.field2 != null){
-				Breakdown wherefield2Breakdown = buildField(tabs, where.field2, false);
-				sb.append(" "+wherefield2Breakdown.sql);
-				for(Object p : wherefield2Breakdown.parameters){
-					parameters.add(p);
-				}
-			}
-			if(where.sql != null){
-				sb.append(" (");
-				sb.append(line(0));
-				Breakdown whereBreakdown = build(where.sql,tabs+3);
-				sb.append(whereBreakdown.sql);
-				for(Object whereParam: whereBreakdown.parameters){
-					parameters.add(whereParam);
-				}
-				sb.append(line(tabs+3));
-				sb.append(")");
-			}
-			for(int i = 0; i < where.functionValue.size();i++){
-				sb.append(")");
-			}
-		}
-
-		///////////////////////////////////
-		//  IN clause
-		////////////////////////////////////
-		for(In in : sql.in){
-			if(!in.in){
-				sb.append(" NOT");
-			}
-			sb.append(" IN");
-			sb.append(" (");
-			Breakdown inBreakdown = build(in.sql,tabs);
-			sb.append(" "+inBreakdown.sql);
-			for(Object p : inBreakdown.parameters){
-				parameters.add(p);
-			}
-			sb.append(" )");
-		}
-
-		///////////////////////////
-		/// UNION clause
-		///////////////////////////
-
+	public void buildClauseAllUnion(Breakdown bk, int tabs, SQL sql) {
 		for(Union union: sql.union){
-			sb.append(line(tabs+1));
-			sb.append(" UNION");
-			if(union.ALL){
-				sb.append(" ALL");
-			}
-			Breakdown unionBreakdown = build(union.sql,tabs);
-			sb.append(line(tabs+1));
-			sb.append(unionBreakdown.sql);
-			for(Object p : unionBreakdown.parameters){
-				parameters.add(p);
-			}
+			bk.line(tabs+1);
+			union.build(bk, tabs);
+			bk.line(tabs+1);
 		}
+	}
 
-		////////////////////////////////
-		//// INTERSECT Clause
-		///////////////////////////////
-
+	public void buildClauseAllIntersect(Breakdown bk, int tabs, SQL sql) {
 		for(Intersect intersect : sql.intersect){
-			sb.append(line(tabs));
-			sb.append(" INTERSECT");
-			if(intersect.ALL){
-				sb.append(" ALL");
-			}
-			Breakdown intersectBreakdown = build(intersect.sql,tabs);
-			sb.append(line(tabs));
-			sb.append(intersectBreakdown.sql);
-			for(Object p : intersectBreakdown.parameters){
-				parameters.add(p);
-			}
+			bk.line(tabs);
+			bk.line(tabs);
+			intersect.build(bk, tabs);
+			bk.line(tabs);
 		}
+
+	}
+
+	public void buildClauseAllExcept(Breakdown bk, int tabs, SQL sql) {
 		////////////////////////////////
 		//// EXCEPT Clause
 		///////////////////////////////
 
 		for(Except except : sql.except){
-			sb.append(line(tabs));
-			sb.append(" EXCEPT");
-			if(except.ALL){
-				sb.append(" ALL");
-			}
-			Breakdown exceptBreakdown = build(except.sql,tabs);
-			sb.append(line(tabs));
-			sb.append(exceptBreakdown.sql);
-			for(Object p : exceptBreakdown.parameters){
-				parameters.add(p);
-			}
+			bk.line(tabs);
+			except.build(bk,tabs);
 		}
+	}
 
-		///////////////////////////////////
-		//   Group By
-		///////////////////////////////////
+	public void buildClauseWhere(Breakdown bk, int tabs, SQL sql){
+		if(where != null){
+			where.build(bk, tabs);
+		}
+	}
+
+	
+	public void buildClauseAllGroupBy(Breakdown bk, int tabs, SQL sql) {
 		boolean doCommaGroupby = false;
 		boolean doGroupByClause = true;
 		for(GroupBy groupby : sql.groupBy){
 			if(doGroupByClause){
-				sb.append(" GROUP BY");
+				bk.append(" GROUP BY");
 				doGroupByClause = false;
 			}
 			if(doCommaGroupby){
-				sb.append(",");
+				bk.append(",");
 			}else{doCommaGroupby = true;}
-			sb.append(" "+groupby.column);
+			groupby.build(bk, tabs);
 		}
+	}
 
-		/////////////////////////////////////
-		//   Having
-		//////////////////////////////////////////
-
-		//////////////////////////////
-		// VALUES
-		//////////////////////////////
-		boolean doCommaValues = false;
-		for(Values value : sql.values){
-			if(value.singleValue != null){
-				if(doCommaValues){
-					sb.append(", ");
-				}else{
-					doCommaValues = true;
-				}
-				sb.append(" ?");
-				parameters.add(value.singleValue);
-			}
-			if(value.sql != null){
-				if(doCommaValues){
-					sb.append(", ");
-				}else{
-					doCommaValues = true;
-				}
-				Breakdown valueBreakdown = build(value.sql,tabs);
-				sb.append(valueBreakdown.sql);
-				for(Object p : valueBreakdown.parameters){
-					parameters.add(p);
-				}
-			}
+	public void buildClauseAllHaving(Breakdown bk, int tabs, SQL sql) {
+		if(having != null){
+			having.build(bk, tabs);
 		}
+	}
+
+	public void buildClauseAllValues(Breakdown bk, int tabs, SQL sql) {
+		for(Values val : sql.values){
+			if(bk.doComma){
+				bk.append(",");
+			}else{
+				bk.doComma = true;
+			}
+			val.build(bk, tabs);
+		}
+	}
+
+	public void buildClauseAllOrderBy(Breakdown bk, int tabs, SQL sql) {
 		////////////////////////////
 		// ORDER BY clause
 		////////////////////////////
@@ -1412,143 +975,36 @@ public class SQL {
 		boolean doCommaOrderBy = false;
 		for(OrderBy orderby : sql.orderBy){
 			if(doOrderByClause){
-				sb.append(line(tabs+2));
-				sb.append(" ORDER BY");
+				bk.line(tabs+2);
+				bk.append(" ORDER BY");
 				doOrderByClause = false;
 			}
 			if(doCommaOrderBy){
-				sb.append(",");
+				bk.append(",");
 			}else{
 				doCommaOrderBy = true;
 			}
-			sb.append(" "+orderby.column);
-			if(orderby.asc){
-				//sb.append(" ASC");
-			}else{
-				sb.append(" DESC");
-			}
+			orderby.build(bk, tabs);
 		}
-		///////////////////////////////
-		// LIMIT
-		/////////////////////////////////
-		if(sql.limit != null){
-			sb.append(" LIMIT");
-			sb.append(" "+sql.limit.limit);
-		}
-		///////////////////////////////
-		// OFFSET
-		/////////////////////////////////
+	}
+
+	public void buildClauseOffset(Breakdown bk, int tabs, SQL sql) {
 		if(sql.offset != null){
-			sb.append(" OFFSET");
-			sb.append(" "+sql.offset.offset);
+			sql.offset.build(bk, tabs);
 		}
-
-		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
-		return breakdown;
 	}
 
-	private String line(int tabs){
-		return "\n"+tabs(tabs);
+	public void buildClauseLimit(Breakdown bk, int tabs, SQL sql) {
+		if(sql.limit != null){
+			sql.limit.build(bk, tabs);
+		}
 	}
 
-	private String tabs(int tabs){
-		StringBuilder tstr = new StringBuilder();
-		for(int i = 0; i < tabs; i++){
-			tstr.append("\t");
-		}
-		return tstr.toString();
-	}
 
-	private Breakdown buildFieldList(int tabs, LinkedList<Field> fields, boolean doCommaField){
-		StringBuilder sb = new StringBuilder();
-		LinkedList<Object> parameters = new LinkedList<Object>();
-//		boolean doCommaField = false;
-		for(Field field : fields){
-			if(doCommaField){
-				sb.append(",");
-				sb.append(line(tabs+2));
-			}else{doCommaField=true;}
-			
-			Breakdown fieldBreakdown = buildField(tabs, field, doCommaField);
-			sb.append(fieldBreakdown.sql);
-			
-			for(Object fieldParam : fieldBreakdown.parameters){
-				parameters.add(fieldParam);
-			}
+	public void buildClauseUpdate(Breakdown bk, int tabs, SQL sql) {
+		if(sql.update != null){
+			sql.update.build(bk, tabs);
 		}
-		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
-		return breakdown;
 	}
-	
-	private Breakdown buildField(int tabs, Field field, boolean doCommaField){
-		LinkedList<Object> parameters = new LinkedList<Object>();
-		StringBuilder sb = new StringBuilder();
-		if(field.column != null){
-			sb.append(" "+field.column);
-		}
-		if(field.sql != null){
-			Breakdown fieldBreakdown = build(field.sql, tabs);
-			sb.append(" (");
-			sb.append(" "+fieldBreakdown.sql);
-			sb.append(" )");
-			for(Object fieldParam : fieldBreakdown.parameters){
-				parameters.add(fieldParam);
-			}
-		}
-		if(field.columnAs != null){
-			sb.append(" AS");
-			sb.append(" "+field.columnAs);
-		}
-		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
-		breakdown.doComma = doCommaField;
-		return breakdown;
-	}
-	
-	
-	private Breakdown buildFunctionList(int tabs, LinkedList<Function> functions){
-		StringBuilder sb = new StringBuilder();
-		LinkedList<Object> parameters = new LinkedList<Object>();
-		boolean doCommaFunction = false;
-		for(Function function : functions){
-			if(doCommaFunction){
-				sb.append(",");
-				sb.append(line(tabs+2));
-			}else{doCommaFunction=true;}
-			Breakdown fieldBreakdown = buildFunction(tabs, function, doCommaFunction);
-			sb.append(fieldBreakdown.sql);
-			for(Object fieldParam : fieldBreakdown.parameters){
-				parameters.add(fieldParam);
-			}
-		}
-		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
-		breakdown.doComma = doCommaFunction;
-		return breakdown;
-	}
-	
-	private Breakdown buildFunction(int tabs, Function function, boolean doCommaFunction){
-		StringBuilder sb = new StringBuilder();
-		LinkedList<Object> parameters = new LinkedList<Object>();
-		boolean fieldFunctionOpenedParenthesis = false;
-		if(function.function != null){
-			sb.append(" "+function.function);
-			sb.append(" (");
-			fieldFunctionOpenedParenthesis = true;
-		}
-		Breakdown fieldBreakdown = buildFieldList(tabs, function.functionFields, false);
-		sb.append(" "+fieldBreakdown.sql);
-		for(Object fieldParam : fieldBreakdown.parameters){
-			parameters.add(fieldParam);
-		}
-		if(fieldFunctionOpenedParenthesis){
-			sb.append(" )");
-			fieldFunctionOpenedParenthesis = false;
-		}
-		if(function.functionAs != null){
-			sb.append(" AS "+function.functionAs);
-		}
-		Breakdown breakdown = new Breakdown(sb.toString(), parameters.toArray(new Object[parameters.size()]));
-		return breakdown;
-	}
-
 
 }

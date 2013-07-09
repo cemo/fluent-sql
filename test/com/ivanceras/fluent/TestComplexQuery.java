@@ -39,7 +39,7 @@ public class TestComplexQuery {
 					.FROM("Customers")
 					.INNER_JOIN("Orders")
 					.ON("Customers.CustomerID", "Orders.CustomerID")
-					.ORDER_BY("Customers.CustomerName").build().sql;
+					.ORDER_BY("Customers.CustomerName").build().getSql();
 		CTest.cassertEquals(expected, actual);
 	}
 	@Test
@@ -87,7 +87,7 @@ public class TestComplexQuery {
 					.ON("Customers.ID", "Orders.CustomerID")
 				.WHERE("Orders.ID").IN(new SQL()
 							.SELECT("ID").FROM("LatestOrders"))
-			.build().sql;
+			.build().getSql();
 		System.out.println("expected: \n"+expected);
 		System.out.println("actual: \n"+actual);
 		CTest.cassertEquals(expected, actual);

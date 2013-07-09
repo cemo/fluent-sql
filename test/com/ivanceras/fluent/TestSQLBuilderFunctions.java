@@ -6,8 +6,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
-
-import com.ivanceras.fluent.SQL.Breakdown;
+import static com.ivanceras.fluent.StaticSQL.*;
 
 public class TestSQLBuilderFunctions {
 
@@ -31,10 +30,9 @@ public class TestSQLBuilderFunctions {
 	public void testRecursiveComplexFunctions(){
 		String expected =
 				" WITH LatestOrders AS (" +
-				"		SELECT SUM ( ( COUNT ( ID ) ) )," +
-				"				COUNT ( ( MAX ( n_items ) ) ) , " +
-				"				CustomerName," +
-				"				( ? ) as color" +
+				"		SELECT SUM ( COUNT ( ID ) )," +
+				"				COUNT ( MAX ( n_items ) ), " +
+				"				CustomerName" +
 				"			FROM dbo.Orders" +
 				"			RIGHT JOIN Customers" +
 				"				on Orders.Customer_ID = Customers.ID " +
@@ -59,11 +57,10 @@ public class TestSQLBuilderFunctions {
 				"   AND Orders.ID IN ( SELECT ID FROM LatestOrders )" ;
 		
 		Breakdown actual = 
-				S.WITH("LatestOrders", 
-					S.SELECT("CustomerName")
-							.SUM(S.COUNT("ID"))
-							.COUNT(S.MAX("n_items"))
-							.FIELD(S.VALUE("Red")).AS("color")
+				WITH("LatestOrders", 
+					SELECT("CustomerName")
+							.SUM(COUNT("ID"))
+							.COUNT(MAX("n_items"))
 							.FROM("dbo.Orders")
 							.RIGHT_JOIN("Customers")
 								.ON("Orders.customer_ID", "Customers.ID")
@@ -75,10 +72,10 @@ public class TestSQLBuilderFunctions {
 			.SELECT()
 				.FIELD("Customers.*")
 				.FIELD("Orders.OrderTime").AS("LatestOrderTime")
-				.FIELD(S.SELECT().COUNT("*")
+				.FIELD(SELECT().COUNT("*")
 							.FROM("dbo.OrderItems")
 							.WHERE("OrderID").IN(
-										S.SELECT("ID")
+										SELECT("ID")
 										.FROM("dbo.Orders")
 										.WHERE("CustomerID").EQUAL_TO_FIELD("Customers.ID"))
 							
@@ -87,11 +84,11 @@ public class TestSQLBuilderFunctions {
 				.INNER_JOIN("dbo.Orders")
 					.USING("ID")
 				.WHERE("Orders.n_items").GREATER_THAN(0)
-				.WHERE("Orders.ID").IN(S.SELECT("ID").FROM("LatestOrders"))
+				.AND("Orders.ID").IN(SELECT("ID").FROM("LatestOrders"))
 			.build();
 		System.out.println("expected: \n"+expected);
-		System.out.println("actual: \n"+actual.sql);
-		CTest.cassertEquals(expected, actual.sql);
+		System.out.println("actual: \n"+actual.getSql());
+		CTest.cassertEquals(expected, actual.getSql());
 	}
 
 }

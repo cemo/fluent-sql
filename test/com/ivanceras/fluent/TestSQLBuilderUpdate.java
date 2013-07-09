@@ -8,8 +8,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.ivanceras.fluent.SQL.Breakdown;
-
 public class TestSQLBuilderUpdate {
 
 	@BeforeClass
@@ -33,8 +31,8 @@ public class TestSQLBuilderUpdate {
 		String expected = "UPDATE films SET kind = ? WHERE kind = ?";
 		Breakdown actual = new SQL().UPDATE("films").SET("kind","Dramatic").WHERE("kind").EQUAL_TO("Drama").build();
 		Object[] expectedParam = new Object[]{"Dramatic", "Drama"};
-		CTest.cassertEquals(expected, actual.sql);
-		assertArrayEquals(expectedParam, actual.parameters);
+		CTest.cassertEquals(expected, actual.getSql());
+		assertArrayEquals(expectedParam, actual.getParameters());
 	}
 
 }

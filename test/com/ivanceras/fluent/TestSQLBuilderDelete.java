@@ -29,13 +29,13 @@ public class TestSQLBuilderDelete {
 	@Test
 	public void test() {
 		String expected = "DELETE FROM products WHERE price IS NOT NULL";
-		String actual = new SQL().DELETE().FROM("products").WHERE("price").IS_NOT_NULL().build().sql;
+		String actual = new SQL().DELETE().FROM("products").WHERE("price").IS_NOT_NULL().build().getSql();
 		CTest.cassertEquals(expected, actual);
 	}
 	@Test
 	public void test2(){
 		String expected = "DELETE FROM products WHERE price = ? ";
-		String actual2 = new SQL().DELETE().FROM("products").WHERE("price").EQUAL_TO("10").build().sql;
+		String actual2 = new SQL().DELETE().FROM("products").WHERE("price").EQUAL_TO("10").build().getSql();
 		CTest.cassertEquals(expected, actual2);
 		
 	}
