@@ -81,23 +81,41 @@ Features
 --------------
 
 A SQL breakdown result:
- * breakdown.sql (String) - the SQL string
- * breakdown.parameters (Object[]) - the resulted array of the parameters that is gathered by the SQL builder.
-
-This will be used in as parameters in your preparedStatment 
- * stmt.setObject(i,parameter[i])
-
+ * breakdown.getSql() (String) - the SQL string built
+ * breakdown.getParameters() (Object[]) - the resulted array of the parameters that is gathered by the SQL builder, with the correct order as they are mentioned in the query
+	This will be used in as parameters in your preparedStatment 
+ * stmt.setObject(i,parameter[i]), in turn SQL injection is already mitigated
 
 
-BSD License
 
-Tips? : 1CYj1jEjV4eWm5TLPRDD34hQbVuUHcGg9X
+
 
 link to comments
 
 https://news.ycombinator.com/item?id=5956867
 
 Updates from HN suggestions:
+Usage of Static methods
+	...
+	public static SQL WITH(String name, SQL sql){
+		return new SQL().WITH(name, sql);
+	}
+	public static SQL SELECT(){
+		return new SQL().SELECT();
+	}
+	public static SQL COUNT(String column){
+		return new SQL().COUNT(column);
+	}
+	public static SQL COUNT(SQL sql){
+		return new SQL().COUNT(sql);
+	}
+	public static SQL SUM(String column){
+		return new SQL().SUM(column);
+	}
+	public static SQL SUM(SQL sql){
+		return new SQL().SUM(sql);
+	}
+	....
 
 			String expected =
 					" WITH LatestOrders AS (" +
@@ -165,8 +183,10 @@ In Fluent SQL
 					.AND("Orders.ID").IN(SELECT("ID").FROM("LatestOrders"))
 				.build();
 	...
-			System.out.println("expected: \n"+expected);
-			System.out.println("actual: \n"+actual.getSql());
 			CTest.cassertEquals(expected, actual.getSql());
 	...
 
+
+BSD License
+
+Tips? : 1CYj1jEjV4eWm5TLPRDD34hQbVuUHcGg9X
